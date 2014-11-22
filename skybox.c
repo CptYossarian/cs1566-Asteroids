@@ -52,6 +52,9 @@ int otheta;
 int xtheta;
 int bGrid;
 int iRotY;
+float xpos;
+float ypos;
+float zpos;
 GLubyte img1[1024 * 1024 * 3];
 GLubyte img2[1024 * 1024 * 3];
 GLuint tex_name1;
@@ -151,6 +154,9 @@ void gl_setup(void) {
 }
 
 void my_setup(void) {
+	xpos = 0;
+	ypos = 0;
+	zpos = 0;
 	otheta = 0;
 	xtheta = 0;
 	bGrid = FALSE;
@@ -221,7 +227,7 @@ void make_skybox()
 					glTexCoord2f(0, 1);
 				else
 					glTexCoord2f(1, 1);
-				glVettex3f(x, -.5 * SKYBOX_RADIUS, z);
+				glVertex3f(xpos + x, ypos + -.5 * SKYBOX_RADIUS, zpos + z);
 					
 				if (t == 0)
 					glTexCoord2f(1, 0);
@@ -229,7 +235,7 @@ void make_skybox()
 					glTexCoord2f(1, 1);
 				else
 					glTexCoord2f(0, 1);
-				glVertex3f(x + dx, -.5 * SKYBOX_RADIUS, z);
+				glVertex3f(xpos + x + dx, ypos + -.5 * SKYBOX_RADIUS, zpos + z);
 					
 				if (t == 0)
 					glTexCoord2f(1, 1);
@@ -237,7 +243,7 @@ void make_skybox()
 					glTexCoord2f(1, 0);
 				else
 					glTexCoord2f(0, 0);
-				glVertex3f(x + dx, -.5 * SKYBOX_RADIUS, z + dx);
+				glVertex3f(xpos + x + dx, ypos + -.5 * SKYBOX_RADIUS, zpos + z + dx);
 					
 				if (t == 0)
 					glTexCoord2f(0, 1);
@@ -245,7 +251,7 @@ void make_skybox()
 					glTexCoord2f(0, 0);	
 				else
 					glTexCoord2f(1, 0);
-				glVertex3f(x, - .5 * SKYBOX_RADIUS, z + dx);
+				glVertex3f(xpos + x, ypos + -.5 * SKYBOX_RADIUS, zpos + z + dx);
 				glEnd();
 ///////////////////////////////////////////////////////////////////////
 				glBegin(GL_POLYGON);
@@ -258,7 +264,7 @@ void make_skybox()
 					glTexCoord2f(0, 1);
 				else
 					glTexCoord2f(1, 1);
-				glVertex3f(x, .5 * SKYBOX_RADIUS, z);
+				glVertex3f(xpos + x, ypos + .5 * SKYBOX_RADIUS, zpos + z);
 
 				if (t == 0)
 					glTexCoord2f(1, 0);
@@ -266,7 +272,7 @@ void make_skybox()
 					glTexCoord2f(1, 1);
 				else
 					glTexCoord2f(0, 1);
-				glVertex3f(x + dx, .5 * SKYBOX_RADIUS, z);
+				glVertex3f(xpos + x + dx, ypos + .5 * SKYBOX_RADIUS, zpos + z);
 
 				if (t == 0)
 					glTexCoord2f(1, 1);
@@ -274,7 +280,7 @@ void make_skybox()
 					glTexCoord2f(1, 0);
 				else
 					glTexCoord2f(0, 0);
-				glVertex3f(x + dx, .5 * SKYBOX_RADIUS, z + dx);
+				glVertex3f(xpos + x + dx, ypos + .5 * SKYBOX_RADIUS, zpos + z + dx);
 
 				if (r == 0)
 					glTexCoord2f(0, 1);
@@ -282,7 +288,7 @@ void make_skybox()
 					glTexCoord2f(0, 0);
 				else
 					glTexCoord2f(1, 0);
-				glVertex3f(x, .5 * SKYBOX_RADIUS, z + dx);
+				glVertex3f(xpos + x, ypos + .5 * SKYBOX_RADIUS, zpos + z + dx);
 				glEnd();
 /////////////////////////////////////////////////////////////
 				glBegin(GL_POLYGON);
@@ -295,7 +301,7 @@ void make_skybox()
 					glTexCoord2f(0, 1);
 				else
 					glTexCoord2f(1, 1);
-				glVertex3f(x, z, -.5 * SKYBOX_RADIUS);
+				glVertex3f(xpos + x, ypos + z, zpos + -.5 * SKYBOX_RADIUS);
 
 				if (t == 0)
 					glTexCoord2f(1, 0);
@@ -303,7 +309,7 @@ void make_skybox()
 					glTexCoord2f(1, 1);
 				else
 					glTexCoord2f(0, 1);
-				glVertex3f(x + dx, z, -.5 * SKYBOX_RADIUS);
+				glVertex3f(xpos + x + dx, ypos + z, zpos + -.5 * SKYBOX_RADIUS);
 
 				if (t == 0)
 					glTexCoord2f(1, 1);
@@ -311,7 +317,7 @@ void make_skybox()
 					glTexCoord2f(1, 0);
 				else
 					glTexCoord2f(0, 0);
-				glVertex3f(x + dx, z + dx, -.5 * SKYBOX_RADIUS);
+				glVertex3f(xpos + x + dx, ypos + z + dx, zpos + -.5 * SKYBOX_RADIUS);
 
 				if (t == 0)
 					glTexCoord2f(0, 1);
@@ -319,7 +325,7 @@ void make_skybox()
 					glTexCoord2f(0, 0);
 				else
 					glTexCoord2f(1, 0);
-				glVertex3f(x, z + dx, -.5 * SKYBOX_RADIUS);
+				glVertex3f(xpos + x, ypos + z + dx, zpos + -.5 * SKYBOX_RADIUS);
 				glEnd();
 //////////////////////////////////////////////////////////////
 				glBegin(GL_POLYGON);
@@ -331,7 +337,7 @@ void make_skybox()
 					glTexCoord2f(0, 1);
 				else
 					glTexCoord2f(1, 1);
-				glVertex3f(x, z, .5 * SKYBOX_RADIUS);
+				glVertex3f(xpos + x, ypos + z, zpos + .5 * SKYBOX_RADIUS);
 
 				if (t == 0)
 					glTexCoord2f(1, 0);
@@ -339,7 +345,7 @@ void make_skybox()
 					glTexCoord2f(1, 1);
 				else
 					glTexCoord2f(0, 1);
-				glVertex3f(x + dx, z, .5 * SKYBOX_RADIUS);
+				glVertex3f(xpos + x + dx, ypos + z, zpos + .5 * SKYBOX_RADIUS);
 
 				if (t == 0)
 					glTexCoord2f(1, 1);
@@ -347,7 +353,7 @@ void make_skybox()
 					glTexCoord2f(1, 0);
 				else
 					glTexCoord2f(0, 0);
-				glVertex3f(x + dx, z + dx, .5 * SKYBOX_RADIUS);
+				glVertex3f(xpos + x + dx, ypos + z + dx, zpos + .5 * SKYBOX_RADIUS);
 
 				if (t == 0)
 					glTexCoord2f(0, 1);
@@ -355,7 +361,7 @@ void make_skybox()
 					glTexCoord2f(0, 0);
 				else
 					glTexCoord2f(1, 0);
-				glVertex3f(x, z + dx, .5 * SKYBOX_RADIUS);
+				glVertex3f(xpos + x, ypos + z + dx, zpos + .5 * SKYBOX_RADIUS);
 				glEnd();
 ///////////////////////////////////////////////////////////////////////////////////
 				glBegin(GL_POLYGON);
@@ -368,7 +374,7 @@ void make_skybox()
 					glTexCoord2f(0, 1);
 				else
 					glTexCoord2f(1, 1);
-				glVertex3f(.5 * SKYBOX_RADIUS, x, z);
+				glVertex3f(xpos + .5 * SKYBOX_RADIUS, ypos + x, zpos + z);
 
 				if (t == 0)
 					glTexCoord2f(1, 0);
@@ -376,7 +382,7 @@ void make_skybox()
 					glTexCoord2f(1, 1);
 				else
 					glTexCoord2f(0, 1);
-				glVertex3f(.5 * SKYBOX_RADIUS, x + dx, z);
+				glVertex3f(xpos + .5 * SKYBOX_RADIUS, ypos + x + dx, zpos + z);
 
 				if (t == 0)
 					glTexCoord2f(1, 1);
@@ -384,7 +390,7 @@ void make_skybox()
 					glTexCoord2f(1, 0);
 				else
 					glTexCoord2f(0, 0);
-				glVertex3f(.5 * SKYBOX_RADIUS, x + dx, z + dx);
+				glVertex3f(xpos + .5 * SKYBOX_RADIUS, ypos + x + dx, zpos + z + dx);
 
 				if (t == 0)
 					glTexCoord2f(0, 1);
@@ -392,19 +398,19 @@ void make_skybox()
 					glTexCoord2f(0, 0);
 				else
 					glTexCoord2f(1, 0);
-				glVertex3f(.5 * SKYBOX_RADIUS, x, z + dx);
+				glVertex3f(xpos + .5 * SKYBOX_RADIUS, ypos + x, zpos + z + dx);
 				glEnd();
 /////////////////////////////////////////////////////////////////
 				glBegin(GL_POLYGON);
 				r = (r * r + 23) % 15;
-				t = r % 3
+				t = r % 3;
 				if (t == 0)
 					glTexCoord2f(0, 0);
 				else if (t == 1)
 					glTexCoord2f(0, 1);
 				else
 					glTexCoord2f(1, 1);
-				glVertex3f(-.5 * SKYBOX_RADIUS, x, z);
+				glVertex3f(xpos + -.5 * SKYBOX_RADIUS, ypos + x, zpos + z);
 
 				if (t == 0)
 					glTexCoord2f(1, 0);
@@ -412,7 +418,7 @@ void make_skybox()
 					glTexCoord2f(1, 1);
 				else
 					glTexCoord2f(0, 1);
-				glVertex3f(-.5 * SKYBOX_RADIUS, x + dx, z);
+				glVertex3f(xpos + -.5 * SKYBOX_RADIUS, ypos + x + dx, zpos + z);
 
 				if (t == 0)
 					glTexCoord2f(1, 1);
@@ -420,7 +426,7 @@ void make_skybox()
 					glTexCoord2f(1, 0);
 				else
 					glTexCoord2f(0, 0);
-				glVertex3f(-.5 * SKYBOX_RADIUS, x + dx, z + dx);
+				glVertex3f(xpos + -.5 * SKYBOX_RADIUS, ypos + x + dx, zpos + z + dx);
 
 				if (t == 0)
 					glTexCoord2f(0, 1);
@@ -428,7 +434,7 @@ void make_skybox()
 					glTexCoord2f(0, 0);
 				else
 					glTexCoord2f(1, 0);
-				glVertex3f(-.5 * SKYBOX_RADIUS, x, z + dx);
+				glVertex3f(xpos + -.5 * SKYBOX_RADIUS, ypos + x, zpos + z + dx);
 				glEnd();
 			}
 
@@ -447,8 +453,8 @@ void my_display(void) {
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(0.0, 0.0, 0.0,  // x,y,z coord of the camera 
-		1.0, 0.0, 0.0,  // x,y,z coord of the origin
+	gluLookAt(xpos, ypos, zpos,  // x,y,z coord of the camera 
+		100.0, 0.0, 0.0,  // x,y,z coord of the origin
 		0.0, 1.0, 0.0); // the direction of up (default is y-axis)
 
 	glRotatef(otheta, 0, 1, 0); // auto-rotation
