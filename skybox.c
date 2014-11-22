@@ -199,6 +199,7 @@ void my_keyboard(unsigned char key, int x, int y) {
 
 void make_skybox()
 //Draws a cube of length SKYBOX_RADIUS centered at the player's position (designated by the triple (xpos, ypos, zpos))
+//There are (NUM_TILES)^2 tiles on each face of the cube
 {
 
 	float z;
