@@ -198,8 +198,7 @@ void my_keyboard(unsigned char key, int x, int y) {
 }
 
 void make_skybox()
-//Draws a cube of length SKYBOX_RADIUS centered at the origin (we may want to change this at some point to the player's position)
-//There are "seams" in the texture where the faces of the cube meet if you look closely enough; I couldn't find a way to remedy this, but it is fairly subtle in most places
+//Draws a cube of length SKYBOX_RADIUS centered at the player's position (designated by the triple (xpos, ypos, zpos))
 {
 
 	float z;
@@ -220,7 +219,7 @@ void make_skybox()
 			{
 				glBegin(GL_POLYGON);
 				r = (r * r + 23) % 15;    //(psuedo-)randomizes texture orientation for the tiles; i.e. although there is no "pattern" to the sequence, I reseed the generator at the beginning of the function
-				t = r % 3;						 //hence, these 'r' values are the same every time the skybox is redrawn, giving us the consistent night sky tiling			
+				t = r % 3;		  //hence, these 'r' values are the same every time the skybox is redrawn, giving us the consistent night sky tiling			
 				if (t == 0)
 					glTexCoord2f(0, 0);
 				else if (t == 1)
