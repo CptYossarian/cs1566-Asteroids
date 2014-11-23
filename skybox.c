@@ -219,8 +219,8 @@ void make_skybox()
 			for (z = (-.5 * SKYBOX_RADIUS); z < (.5 * SKYBOX_RADIUS); z += dx)
 			{
 				glBegin(GL_POLYGON);
-				r = (r * r + 23) % 15;    //(psuedo-)randomizes texture orientation for the tiles; i.e. although there is no "pattern" to the sequence, I reseed the generator at the beginning of the function
-				t = r % 3;		  //hence, these 'r' values are the same every time the skybox is redrawn, giving us the consistent night sky tiling			
+				r = (r * r + 23) % 15;    //psuedo-random sequence; determines texture map orientation
+				t = r % 3;		  		
 				if (t == 0)
 					glTexCoord2f(0, 0);
 				else if (t == 1)
