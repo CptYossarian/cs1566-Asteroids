@@ -14,29 +14,8 @@
 
 #define PI 3.14159265
 
-#define BLACK   0
-#define RED     1
-#define YELLOW  2
-#define ORANGE  3
-#define GREEN   4
-#define BLUE    5
-#define WHITE   6
-#define MAGENTA 7
-#define CYAN    8
-#define GREY    9
 
-GLfloat colors[][3] = {
-		{ 0.0, 0.0, 0.0 },  /* black   */
-		{ 1.0, 0.0, 0.0 },  /* red     */
-		{ 1.0, 1.0, 0.0 },  /* yellow  */
-		{ 1.0, 0.5, 0.0 },  /* orange  */
-		{ 0.0, 1.0, 0.0 },  /* green   */
-		{ 0.0, 0.0, 1.0 },  /* blue    */
-		{ 1.0, 1.0, 1.0 },   /* white   */
-		{ 1.0, 0.0, 1.0 },  /* magenta */
-		{ 0.0, 1.0, 1.0 },  /* cyan    */
-		{ 0.5, 0.5, 0.5 }  /* 50%grey */
-};
+
 
 
 void glut_setup(void);
@@ -50,8 +29,6 @@ void my_timer(int val);
 
 int otheta;
 int xtheta;
-int bGrid;
-int iRotY;
 float xpos;
 float ypos;
 float zpos;
@@ -159,8 +136,6 @@ void my_setup(void) {
 	zpos = 0;
 	otheta = 0;
 	xtheta = 0;
-	bGrid = FALSE;
-	iRotY = 0;
 	return;
 }
 
