@@ -8,8 +8,6 @@
 #include <stdio.h>
 
 #define SKYBOX_RADIUS 200
-#define NUM_SLICES	20
-#define NUM_SHELLS	50
 #define NUM_TILES  5
 
 #define PI 3.14159265
@@ -142,6 +140,8 @@ void my_setup(void) {
 void my_reshape(int w, int h) {
 
 	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	gluPerspective(30.0, w/h, 1.0, 2 * SKYBOX_RADIUS);
 	return;
 }
 
