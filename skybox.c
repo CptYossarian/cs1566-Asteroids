@@ -141,7 +141,10 @@ void my_reshape(int w, int h) {
 
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
-	gluPerspective(30.0, w/h, 1.0, 2 * SKYBOX_RADIUS);
+	glLoadIdentity();
+
+	gluPerspective(30.0, w / h, 1.0, 2 * SKYBOX_RADIUS);
+	
 	return;
 }
 
