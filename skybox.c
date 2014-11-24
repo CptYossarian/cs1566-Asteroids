@@ -422,21 +422,17 @@ void make_skybox()
 
 
 void my_display(void) {
-	/* clear the buffer */
-	/* NEW: now we have to clear depth as well */
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(xpos, ypos, zpos,  // x,y,z coord of the camera 
-		100.0, 0.0, 0.0,  // x,y,z coord of the origin
-		0.0, 1.0, 0.0); // the direction of up (default is y-axis)
+	gluLookAt(xpos, ypos, zpos, 100.0, 0.0, 0.0, 0.0, 1.0, 0.0); 
 
-	glRotatef(otheta, 0, 1, 0); // auto-rotation
+	glRotatef(otheta, 0, 1, 0);
 	glRotatef(xtheta, 0, 0, 1);
 	make_skybox();
 
-	/* buffer is ready */
+
 	glutSwapBuffers();
 
 	return;
