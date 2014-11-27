@@ -175,267 +175,270 @@ void my_keyboard(unsigned char key, int x, int y) {
 	return;
 }
 
-void make_skybox()
-//Draws a cube of length SKYBOX_RADIUS centered at the player's position (designated by the triple (xpos, ypos, zpos))
-//There are (NUM_TILES)^2 tiles on each face of the cube
+void make_skybox(int radius, int num_tiles)
+//Draws a cube of length radius centered at the player's position (designated by the triple (xpos, ypos, zpos))
+//There are (num_tiles)^2 tiles on each face of the cube
 {
 
 	float z;
 	float x;
 
-	float dx = SKYBOX_RADIUS / NUM_TILES;
+	float dx = radius / num_tiles;
 	int r = 17;
 	int t;
-	
+
 	glEnable(GL_TEXTURE_2D);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	
-	
-
-		
-		for (x = (-.5 * SKYBOX_RADIUS); x < (.5 * SKYBOX_RADIUS); x += dx)
-			for (z = (-.5 * SKYBOX_RADIUS); z < (.5 * SKYBOX_RADIUS); z += dx)
-			{
-				glBegin(GL_POLYGON);
-				r = (r * r + 23) % 15;    //psuedo-random sequence; determines texture map orientation
-				t = r % 3;		  		
-				if (t == 0)
-					glTexCoord2f(0, 0);
-				else if (t == 1)
-					glTexCoord2f(0, 1);
-				else
-					glTexCoord2f(1, 1);
-				glVertex3f(xpos + x, ypos + -.5 * SKYBOX_RADIUS, zpos + z);
-					
-				if (t == 0)
-					glTexCoord2f(1, 0);
-				else if (t == 1)
-					glTexCoord2f(1, 1);
-				else
-					glTexCoord2f(0, 1);
-				glVertex3f(xpos + x + dx, ypos + -.5 * SKYBOX_RADIUS, zpos + z);
-					
-				if (t == 0)
-					glTexCoord2f(1, 1);
-				else if (t == 1)
-					glTexCoord2f(1, 0);
-				else
-					glTexCoord2f(0, 0);
-				glVertex3f(xpos + x + dx, ypos + -.5 * SKYBOX_RADIUS, zpos + z + dx);
-					
-				if (t == 0)
-					glTexCoord2f(0, 1);
-				else if (t == 1)
-					glTexCoord2f(0, 0);	
-				else
-					glTexCoord2f(1, 0);
-				glVertex3f(xpos + x, ypos + -.5 * SKYBOX_RADIUS, zpos + z + dx);
-				glEnd();
-///////////////////////////////////////////////////////////////////////
-				glBegin(GL_POLYGON);
-				r = (r * r + 23) % 15;
-				t = r % 3;
-				
-				if (t == 0)
-					glTexCoord2f(0, 0);
-				else if (t == 1)
-					glTexCoord2f(0, 1);
-				else
-					glTexCoord2f(1, 1);
-				glVertex3f(xpos + x, ypos + .5 * SKYBOX_RADIUS, zpos + z);
-
-				if (t == 0)
-					glTexCoord2f(1, 0);
-				else if (t == 1)
-					glTexCoord2f(1, 1);
-				else
-					glTexCoord2f(0, 1);
-				glVertex3f(xpos + x + dx, ypos + .5 * SKYBOX_RADIUS, zpos + z);
-
-				if (t == 0)
-					glTexCoord2f(1, 1);
-				else if (t == 1)
-					glTexCoord2f(1, 0);
-				else
-					glTexCoord2f(0, 0);
-				glVertex3f(xpos + x + dx, ypos + .5 * SKYBOX_RADIUS, zpos + z + dx);
-
-				if (r == 0)
-					glTexCoord2f(0, 1);
-				else if (r == 1)
-					glTexCoord2f(0, 0);
-				else
-					glTexCoord2f(1, 0);
-				glVertex3f(xpos + x, ypos + .5 * SKYBOX_RADIUS, zpos + z + dx);
-				glEnd();
-/////////////////////////////////////////////////////////////
-				glBegin(GL_POLYGON);
-				r = (r * r + 23) % 15;
-				t = r % 3;
-				
-				if (t == 0)
-					glTexCoord2f(0, 0);
-				else if (t == 1)
-					glTexCoord2f(0, 1);
-				else
-					glTexCoord2f(1, 1);
-				glVertex3f(xpos + x, ypos + z, zpos + -.5 * SKYBOX_RADIUS);
-
-				if (t == 0)
-					glTexCoord2f(1, 0);
-				else if (t == 1)
-					glTexCoord2f(1, 1);
-				else
-					glTexCoord2f(0, 1);
-				glVertex3f(xpos + x + dx, ypos + z, zpos + -.5 * SKYBOX_RADIUS);
-
-				if (t == 0)
-					glTexCoord2f(1, 1);
-				else if (t == 1)
-					glTexCoord2f(1, 0);
-				else
-					glTexCoord2f(0, 0);
-				glVertex3f(xpos + x + dx, ypos + z + dx, zpos + -.5 * SKYBOX_RADIUS);
-
-				if (t == 0)
-					glTexCoord2f(0, 1);
-				else if (t == 1)
-					glTexCoord2f(0, 0);
-				else
-					glTexCoord2f(1, 0);
-				glVertex3f(xpos + x, ypos + z + dx, zpos + -.5 * SKYBOX_RADIUS);
-				glEnd();
-//////////////////////////////////////////////////////////////
-				glBegin(GL_POLYGON);
-				r = (r * r + 23) % 15;
-				t = r % 3;
-				if (t == 0)
-					glTexCoord2f(0, 0);
-				else if (t == 1)
-					glTexCoord2f(0, 1);
-				else
-					glTexCoord2f(1, 1);
-				glVertex3f(xpos + x, ypos + z, zpos + .5 * SKYBOX_RADIUS);
-
-				if (t == 0)
-					glTexCoord2f(1, 0);
-				else if (t == 1)
-					glTexCoord2f(1, 1);
-				else
-					glTexCoord2f(0, 1);
-				glVertex3f(xpos + x + dx, ypos + z, zpos + .5 * SKYBOX_RADIUS);
-
-				if (t == 0)
-					glTexCoord2f(1, 1);
-				else if (t == 1)
-					glTexCoord2f(1, 0);
-				else
-					glTexCoord2f(0, 0);
-				glVertex3f(xpos + x + dx, ypos + z + dx, zpos + .5 * SKYBOX_RADIUS);
-
-				if (t == 0)
-					glTexCoord2f(0, 1);
-				else if (t == 1)
-					glTexCoord2f(0, 0);
-				else
-					glTexCoord2f(1, 0);
-				glVertex3f(xpos + x, ypos + z + dx, zpos + .5 * SKYBOX_RADIUS);
-				glEnd();
-///////////////////////////////////////////////////////////////////////////////////
-				glBegin(GL_POLYGON);
-				r = (r * r + 23) % 15;
-				t = r % 3;
-				
-				if (t == 0)
-					glTexCoord2f(0, 0);
-				else if (t == 1)
-					glTexCoord2f(0, 1);
-				else
-					glTexCoord2f(1, 1);
-				glVertex3f(xpos + .5 * SKYBOX_RADIUS, ypos + x, zpos + z);
-
-				if (t == 0)
-					glTexCoord2f(1, 0);
-				else if (t == 1)
-					glTexCoord2f(1, 1);
-				else
-					glTexCoord2f(0, 1);
-				glVertex3f(xpos + .5 * SKYBOX_RADIUS, ypos + x + dx, zpos + z);
-
-				if (t == 0)
-					glTexCoord2f(1, 1);
-				else if (t == 1)
-					glTexCoord2f(1, 0);
-				else
-					glTexCoord2f(0, 0);
-				glVertex3f(xpos + .5 * SKYBOX_RADIUS, ypos + x + dx, zpos + z + dx);
-
-				if (t == 0)
-					glTexCoord2f(0, 1);
-				else if (t == 1)
-					glTexCoord2f(0, 0);
-				else
-					glTexCoord2f(1, 0);
-				glVertex3f(xpos + .5 * SKYBOX_RADIUS, ypos + x, zpos + z + dx);
-				glEnd();
-/////////////////////////////////////////////////////////////////
-				glBegin(GL_POLYGON);
-				r = (r * r + 23) % 15;
-				t = r % 3;
-				if (t == 0)
-					glTexCoord2f(0, 0);
-				else if (t == 1)
-					glTexCoord2f(0, 1);
-				else
-					glTexCoord2f(1, 1);
-				glVertex3f(xpos + -.5 * SKYBOX_RADIUS, ypos + x, zpos + z);
-
-				if (t == 0)
-					glTexCoord2f(1, 0);
-				else if (t == 1)
-					glTexCoord2f(1, 1);
-				else
-					glTexCoord2f(0, 1);
-				glVertex3f(xpos + -.5 * SKYBOX_RADIUS, ypos + x + dx, zpos + z);
-
-				if (t == 0)
-					glTexCoord2f(1, 1);
-				else if (t == 1)
-					glTexCoord2f(1, 0);
-				else
-					glTexCoord2f(0, 0);
-				glVertex3f(xpos + -.5 * SKYBOX_RADIUS, ypos + x + dx, zpos + z + dx);
-
-				if (t == 0)
-					glTexCoord2f(0, 1);
-				else if (t == 1)
-					glTexCoord2f(0, 0);
-				else
-					glTexCoord2f(1, 0);
-				glVertex3f(xpos + -.5 * SKYBOX_RADIUS, ypos + x, zpos + z + dx);
-				glEnd();
-			}
 
 
-		
-		
+
+
+	for (x = (-.5 * radius); x < (.5 * radius); x += dx)
+		for (z = (-.5 * radius); z < (.5 * radius); z += dx)
+		{
+		glBegin(GL_POLYGON);
+		r = (r * r + 23) % 15;    //psuedo-random sequence; determines texture map orientation
+		t = r % 3;
+		if (t == 0)
+			glTexCoord2f(0, 0);
+		else if (t == 1)
+			glTexCoord2f(0, 1);
+		else
+			glTexCoord2f(1, 1);
+		glVertex3f(xpos + x, ypos + -.5 * radius, zpos + z);
+
+		if (t == 0)
+			glTexCoord2f(1, 0);
+		else if (t == 1)
+			glTexCoord2f(1, 1);
+		else
+			glTexCoord2f(0, 1);
+		glVertex3f(xpos + x + dx, ypos + -.5 * radius, zpos + z);
+
+		if (t == 0)
+			glTexCoord2f(1, 1);
+		else if (t == 1)
+			glTexCoord2f(1, 0);
+		else
+			glTexCoord2f(0, 0);
+		glVertex3f(xpos + x + dx, ypos + -.5 * radius, zpos + z + dx);
+
+		if (t == 0)
+			glTexCoord2f(0, 1);
+		else if (t == 1)
+			glTexCoord2f(0, 0);
+		else
+			glTexCoord2f(1, 0);
+		glVertex3f(xpos + x, ypos + -.5 * radius, zpos + z + dx);
+		glEnd();
+		///////////////////////////////////////////////////////////////////////
+		glBegin(GL_POLYGON);
+		r = (r * r + 23) % 15;
+		t = r % 3;
+
+		if (t == 0)
+			glTexCoord2f(0, 0);
+		else if (t == 1)
+			glTexCoord2f(0, 1);
+		else
+			glTexCoord2f(1, 1);
+		glVertex3f(xpos + x, ypos + .5 * radius, zpos + z);
+
+		if (t == 0)
+			glTexCoord2f(1, 0);
+		else if (t == 1)
+			glTexCoord2f(1, 1);
+		else
+			glTexCoord2f(0, 1);
+		glVertex3f(xpos + x + dx, ypos + .5 * radius, zpos + z);
+
+		if (t == 0)
+			glTexCoord2f(1, 1);
+		else if (t == 1)
+			glTexCoord2f(1, 0);
+		else
+			glTexCoord2f(0, 0);
+		glVertex3f(xpos + x + dx, ypos + .5 * radius, zpos + z + dx);
+
+		if (r == 0)
+			glTexCoord2f(0, 1);
+		else if (r == 1)
+			glTexCoord2f(0, 0);
+		else
+			glTexCoord2f(1, 0);
+		glVertex3f(xpos + x, ypos + .5 * radius, zpos + z + dx);
+		glEnd();
+		/////////////////////////////////////////////////////////////
+		glBegin(GL_POLYGON);
+		r = (r * r + 23) % 15;
+		t = r % 3;
+
+		if (t == 0)
+			glTexCoord2f(0, 0);
+		else if (t == 1)
+			glTexCoord2f(0, 1);
+		else
+			glTexCoord2f(1, 1);
+		glVertex3f(xpos + x, ypos + z, zpos + -.5 * radius);
+
+		if (t == 0)
+			glTexCoord2f(1, 0);
+		else if (t == 1)
+			glTexCoord2f(1, 1);
+		else
+			glTexCoord2f(0, 1);
+		glVertex3f(xpos + x + dx, ypos + z, zpos + -.5 * radius);
+
+		if (t == 0)
+			glTexCoord2f(1, 1);
+		else if (t == 1)
+			glTexCoord2f(1, 0);
+		else
+			glTexCoord2f(0, 0);
+		glVertex3f(xpos + x + dx, ypos + z + dx, zpos + -.5 * radius);
+
+		if (t == 0)
+			glTexCoord2f(0, 1);
+		else if (t == 1)
+			glTexCoord2f(0, 0);
+		else
+			glTexCoord2f(1, 0);
+		glVertex3f(xpos + x, ypos + z + dx, zpos + -.5 * radius);
+		glEnd();
+		//////////////////////////////////////////////////////////////
+		glBegin(GL_POLYGON);
+		r = (r * r + 23) % 15;
+		t = r % 3;
+		if (t == 0)
+			glTexCoord2f(0, 0);
+		else if (t == 1)
+			glTexCoord2f(0, 1);
+		else
+			glTexCoord2f(1, 1);
+		glVertex3f(xpos + x, ypos + z, zpos + .5 * radius);
+
+		if (t == 0)
+			glTexCoord2f(1, 0);
+		else if (t == 1)
+			glTexCoord2f(1, 1);
+		else
+			glTexCoord2f(0, 1);
+		glVertex3f(xpos + x + dx, ypos + z, zpos + .5 * radius);
+
+		if (t == 0)
+			glTexCoord2f(1, 1);
+		else if (t == 1)
+			glTexCoord2f(1, 0);
+		else
+			glTexCoord2f(0, 0);
+		glVertex3f(xpos + x + dx, ypos + z + dx, zpos + .5 * radius);
+
+		if (t == 0)
+			glTexCoord2f(0, 1);
+		else if (t == 1)
+			glTexCoord2f(0, 0);
+		else
+			glTexCoord2f(1, 0);
+		glVertex3f(xpos + x, ypos + z + dx, zpos + .5 * radius);
+		glEnd();
+		///////////////////////////////////////////////////////////////////////////////////
+		glBegin(GL_POLYGON);
+		r = (r * r + 23) % 15;
+		t = r % 3;
+
+		if (t == 0)
+			glTexCoord2f(0, 0);
+		else if (t == 1)
+			glTexCoord2f(0, 1);
+		else
+			glTexCoord2f(1, 1);
+		glVertex3f(xpos + .5 * radius, ypos + x, zpos + z);
+
+		if (t == 0)
+			glTexCoord2f(1, 0);
+		else if (t == 1)
+			glTexCoord2f(1, 1);
+		else
+			glTexCoord2f(0, 1);
+		glVertex3f(xpos + .5 * radius, ypos + x + dx, zpos + z);
+
+		if (t == 0)
+			glTexCoord2f(1, 1);
+		else if (t == 1)
+			glTexCoord2f(1, 0);
+		else
+			glTexCoord2f(0, 0);
+		glVertex3f(xpos + .5 * radius, ypos + x + dx, zpos + z + dx);
+
+		if (t == 0)
+			glTexCoord2f(0, 1);
+		else if (t == 1)
+			glTexCoord2f(0, 0);
+		else
+			glTexCoord2f(1, 0);
+		glVertex3f(xpos + .5 * radius, ypos + x, zpos + z + dx);
+		glEnd();
+		/////////////////////////////////////////////////////////////////
+		glBegin(GL_POLYGON);
+		r = (r * r + 23) % 15;
+		t = r % 3;
+		if (t == 0)
+			glTexCoord2f(0, 0);
+		else if (t == 1)
+			glTexCoord2f(0, 1);
+		else
+			glTexCoord2f(1, 1);
+		glVertex3f(xpos + -.5 * radius, ypos + x, zpos + z);
+
+		if (t == 0)
+			glTexCoord2f(1, 0);
+		else if (t == 1)
+			glTexCoord2f(1, 1);
+		else
+			glTexCoord2f(0, 1);
+		glVertex3f(xpos + -.5 * radius, ypos + x + dx, zpos + z);
+
+		if (t == 0)
+			glTexCoord2f(1, 1);
+		else if (t == 1)
+			glTexCoord2f(1, 0);
+		else
+			glTexCoord2f(0, 0);
+		glVertex3f(xpos + -.5 * radius, ypos + x + dx, zpos + z + dx);
+
+		if (t == 0)
+			glTexCoord2f(0, 1);
+		else if (t == 1)
+			glTexCoord2f(0, 0);
+		else
+			glTexCoord2f(1, 0);
+		glVertex3f(xpos + -.5 * radius, ypos + x, zpos + z + dx);
+		glEnd();
+		}
+
+
+
+
 }
 
 
 
 
 void my_display(void) {
+	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(xpos, ypos, zpos, 100.0, 0.0, 0.0, 0.0, 1.0, 0.0); 
+	gluLookAt(xpos, ypos, zpos, 
+		100.0, 0.0, 0.0,
+		0.0, 1.0, 0.0); 
 
 	glRotatef(otheta, 0, 1, 0);
 	glRotatef(xtheta, 0, 0, 1);
-	make_skybox();
+	make_skybox(SKYBOX_RADIUS, NUM_TILES);
 
-
+	
 	glutSwapBuffers();
 
 	return;
