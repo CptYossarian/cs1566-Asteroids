@@ -8,7 +8,13 @@
 #include <stdio.h>
 
 #define SKYBOX_RADIUS 200
+#define NUM_SLICES	20
+#define NUM_SHELLS	50
 #define NUM_TILES  5
+#define MOUSE_X_SENSITIVITY .001
+#define MOUSE_Y_SENSITIVITY .001
+#define DELTA_TIME 50
+
 
 #define PI 3.14159265
 
@@ -20,6 +26,7 @@ void glut_setup(void);
 void gl_setup(void);
 void my_setup(void);
 void texture_setup(void);
+void mouse_motion(int x, int y);
 void my_display(void);
 void my_reshape(int w, int h);
 void my_keyboard(unsigned char key, int x, int y);
@@ -30,6 +37,12 @@ int xtheta;
 float xpos;
 float ypos;
 float zpos;
+float atx;
+float aty;
+float atz;
+float upx;
+float upy;
+float upz;
 GLubyte img1[1024 * 1024 * 3];
 GLubyte img2[1024 * 1024 * 3];
 GLuint tex_name1;
@@ -73,14 +86,13 @@ void load_bmp(FILE *fp, GLubyte img[], int width, int height, GLuint *ptname) {
 
 int main(int argc, char **argv) {
 
-	
+
 	glutInit(&argc, argv);
 
-	
+
 	glut_setup();
 	gl_setup();
 	my_setup();
-
 	glutMainLoop();
 
 	return(0);
@@ -89,35 +101,39 @@ int main(int argc, char **argv) {
 
 void glut_setup(void) {
 
-	
+
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
-	
-	glutInitWindowSize(400, 400);
+
+	glutInitWindowSize(1600, 900);
 	glutInitWindowPosition(0, 0);
 	glutCreateWindow("Asteroids: Skybox");
+	glutFullScreen();
+	glutSetCursor(GLUT_CURSOR_NONE);
+	glutWarpPointer(800, 450);
 
-	
 	glutDisplayFunc(my_display);
 	glutReshapeFunc(my_reshape);
 	glutKeyboardFunc(my_keyboard);
+	glutPassiveMotionFunc(mouse_motion);
+	glutTimerFunc(DELTA_TIME, my_timer, 0);
 	return;
 }
 
 
 void gl_setup(void) {
 
-	
+
 	glClearColor(0, 0, 0, 0);
 
-	
+
 	glEnable(GL_DEPTH_TEST);
 
-	
+
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	
-	gluPerspective(30.0, 1.0, 1.0, 410.0);
+
+	gluPerspective(30.0, 1.777777777778, 1.0, 410.0);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -132,6 +148,12 @@ void my_setup(void) {
 	xpos = 0;
 	ypos = 0;
 	zpos = 0;
+	atx = 1;
+	aty = 0;
+	atz = 0;
+	upx = 0;
+	upy = 1;
+	upz = 0;
 	otheta = 0;
 	xtheta = 0;
 	return;
@@ -144,7 +166,7 @@ void my_reshape(int w, int h) {
 	glLoadIdentity();
 
 	gluPerspective(30.0, w / h, 1.0, 2 * SKYBOX_RADIUS);
-	
+
 	return;
 }
 
@@ -153,35 +175,32 @@ void texture_setup() {
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	load_bmp(fopen("6.bmp", "rb"), img1, 1024, 1024, &tex_name1);
-	
+
 
 }
 
 void my_keyboard(unsigned char key, int x, int y) {
 
 	switch (key) {
-	case 'y':
-		otheta = (otheta + 5) % 360;
-		break;
-	case 'x':
-		xtheta = (xtheta + 5) % 360;
-		break;
 	case 'q':
 	case 'Q':
 		exit(0);
+	case 'r':
+		glutTimerFunc(DELTA_TIME, my_timer, 0);
+		break;
 	default: break;
 	}
-	glutTimerFunc(100, my_timer, 0);
+	glutPostRedisplay();
 	return;
 }
 
-void make_skybox(int radius, int num_tiles)
+void make_skybox(float radius, int num_tiles)
 //Draws a cube of length radius centered at the player's position (designated by the triple (xpos, ypos, zpos))
 //There are (num_tiles)^2 tiles on each face of the cube
 {
 
-	float z;
-	float x;
+	double z;
+	double x;
 
 	float dx = radius / num_tiles;
 	int r = 17;
@@ -421,7 +440,54 @@ void make_skybox(int radius, int num_tiles)
 
 }
 
+void cross(float *res, float a1, float a2, float a3, float b1, float b2, float b3)
+{
+	res[0] = a2 * b3 - a3 * b2;
+	res[1] = a3 * b1 - a1 * b3;
+	res[2] = a1 * b2 - a2 * b1;
+}
 
+float magnitude(float x,float y, float z)
+{
+	return sqrt(x * x + y * y + z * z);
+}
+
+void mouse_motion(int x, int y)
+{
+	float mag;
+	float res[3];
+
+	cross(&res[0], upx, upy, upz, atx, aty, atz);
+	upx += atx * MOUSE_Y_SENSITIVITY * (y - 450);
+	upy += aty * MOUSE_Y_SENSITIVITY * (y - 450);
+	upz += atz * MOUSE_Y_SENSITIVITY * (y - 450);
+	atx += upx * MOUSE_Y_SENSITIVITY * (y - 450);
+	aty += upy * MOUSE_Y_SENSITIVITY * (y - 450);
+	atz += upz * MOUSE_Y_SENSITIVITY * (y - 450);
+	mag = magnitude(upx, upy, upz);
+	upx = upx / mag;
+	upy = upy / mag;
+	upz = upz / mag;
+
+	atx = res[0];
+	aty = res[1];
+	atz = res[2];
+	
+	cross(&res[0], upx, upy, upz, atx, aty, atz);
+	atx = -res[0] + atx * MOUSE_X_SENSITIVITY * (800 - x);
+	aty = -res[1] + aty * MOUSE_X_SENSITIVITY * (800 - x);
+	atz = -res[2] + atz * MOUSE_X_SENSITIVITY * (800 - x);
+	mag = magnitude(atx, aty, atz);
+	atx = atx / mag;
+	aty = aty / mag;
+	atz = atz / mag;
+	if (x != 800 || y != 450)
+		printf("upx: %f upy: %f upz: %f\n atx: %f aty: %f atz: %f\n dot: %f\n\n", upx, upy, upz, atx, aty, atz, atx * upx + aty * upy + atz * upz);
+	glutWarpPointer(800, 450);
+	
+	my_display();
+	return 0;
+}
 
 
 void my_display(void) {
@@ -431,11 +497,9 @@ void my_display(void) {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(xpos, ypos, zpos, 
-		100.0, 0.0, 0.0,
-		0.0, 1.0, 0.0); 
+		atx, aty, atz,
+		upx, upy, upz); 
 
-	glRotatef(otheta, 0, 1, 0);
-	glRotatef(xtheta, 0, 0, 1);
 	make_skybox(SKYBOX_RADIUS, NUM_TILES);
 
 	
@@ -447,5 +511,6 @@ void my_display(void) {
 void my_timer(int val) {
 
 	glutPostRedisplay();
+	glutTimerFunc(DELTA_TIME, my_timer, 0);
 	return;
 }
