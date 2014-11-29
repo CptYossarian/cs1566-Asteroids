@@ -481,8 +481,7 @@ void mouse_motion(int x, int y)
 	atx = atx / mag;
 	aty = aty / mag;
 	atz = atz / mag;
-	if (x != 800 || y != 450)
-		printf("upx: %f upy: %f upz: %f\n atx: %f aty: %f atz: %f\n dot: %f\n\n", upx, upy, upz, atx, aty, atz, atx * upx + aty * upy + atz * upz);
+	
 	glutWarpPointer(800, 450);
 	
 	my_display();
