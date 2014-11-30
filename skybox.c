@@ -34,8 +34,7 @@ void my_reshape(int w, int h);
 void my_keyboard(unsigned char key, int x, int y);
 void my_timer(int val);
 
-int otheta;
-int xtheta;
+
 float xpos;
 float ypos;
 float zpos;
@@ -46,7 +45,6 @@ float upx;
 float upy;
 float upz;
 GLubyte img1[1024 * 1024 * 3];
-GLubyte img2[1024 * 1024 * 3];
 GLuint tex_name1;
 
 
@@ -107,7 +105,7 @@ void glut_setup(void) {
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
 
-	glutInitWindowSize(1600, 900);
+	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
 	glutInitWindowPosition(0, 0);
 	glutCreateWindow("Asteroids: Skybox");
 	glutFullScreen();
@@ -187,9 +185,6 @@ void my_keyboard(unsigned char key, int x, int y) {
 	case 'q':
 	case 'Q':
 		exit(0);
-	case 'r':
-		glutTimerFunc(DELTA_TIME, my_timer, 0);
-		break;
 	default: break;
 	}
 	glutPostRedisplay();
@@ -449,7 +444,7 @@ void cross(float *res, float a1, float a2, float a3, float b1, float b2, float b
 	res[2] = a1 * b2 - a2 * b1;
 }
 
-float magnitude(float x,float y, float z)
+float magnitude(float x,float y, float z) //"POP POP!"
 {
 	return sqrt(x * x + y * y + z * z);
 }
