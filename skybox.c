@@ -14,6 +14,8 @@
 #define MOUSE_X_SENSITIVITY .001
 #define MOUSE_Y_SENSITIVITY .001
 #define DELTA_TIME 50
+#define SCREEN_WIDTH 1600
+#define SCREEN_HEIGHT 900
 
 
 #define PI 3.14159265
@@ -110,7 +112,7 @@ void glut_setup(void) {
 	glutCreateWindow("Asteroids: Skybox");
 	glutFullScreen();
 	glutSetCursor(GLUT_CURSOR_NONE);
-	glutWarpPointer(800, 450);
+	glutWarpPointer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
 
 	glutDisplayFunc(my_display);
 	glutReshapeFunc(my_reshape);
@@ -133,7 +135,7 @@ void gl_setup(void) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	gluPerspective(30.0, 1.777777777778, 1.0, 410.0);
+	gluPerspective(30.0, SCREEN_WIDTH / SCREEN_HEIGHT, 1.0, 410.0);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -458,12 +460,12 @@ void mouse_motion(int x, int y)
 	float res[3];
 
 	cross(&res[0], upx, upy, upz, atx, aty, atz);
-	upx += atx * MOUSE_Y_SENSITIVITY * (y - 450);
-	upy += aty * MOUSE_Y_SENSITIVITY * (y - 450);
-	upz += atz * MOUSE_Y_SENSITIVITY * (y - 450);
-	atx += upx * MOUSE_Y_SENSITIVITY * (y - 450);
-	aty += upy * MOUSE_Y_SENSITIVITY * (y - 450);
-	atz += upz * MOUSE_Y_SENSITIVITY * (y - 450);
+	upx += atx * MOUSE_Y_SENSITIVITY * (y - SCREEN_HEIGHT / 2);
+	upy += aty * MOUSE_Y_SENSITIVITY * (y - SCREEN_HEIGHT / 2);
+	upz += atz * MOUSE_Y_SENSITIVITY * (y - SCREEN_HEIGHT / 2);
+	atx += upx * MOUSE_Y_SENSITIVITY * (y - SCREEN_HEIGHT / 2);
+	aty += upy * MOUSE_Y_SENSITIVITY * (y - SCREEN_HEIGHT / 2);
+	atz += upz * MOUSE_Y_SENSITIVITY * (y - SCREEN_HEIGHT / 2);
 	mag = magnitude(upx, upy, upz);
 	upx = upx / mag;
 	upy = upy / mag;
@@ -474,15 +476,15 @@ void mouse_motion(int x, int y)
 	atz = res[2];
 	
 	cross(&res[0], upx, upy, upz, atx, aty, atz);
-	atx = -res[0] + atx * MOUSE_X_SENSITIVITY * (800 - x);
-	aty = -res[1] + aty * MOUSE_X_SENSITIVITY * (800 - x);
-	atz = -res[2] + atz * MOUSE_X_SENSITIVITY * (800 - x);
+	atx = -res[0] + atx * MOUSE_X_SENSITIVITY * (SCREEN_WIDTH / 2 - x);
+	aty = -res[1] + aty * MOUSE_X_SENSITIVITY * (SCREEN_WIDTH / 2 - x);
+	atz = -res[2] + atz * MOUSE_X_SENSITIVITY * (SCREEN_WIDTH / 2 - x);
 	mag = magnitude(atx, aty, atz);
 	atx = atx / mag;
 	aty = aty / mag;
 	atz = atz / mag;
 	
-	glutWarpPointer(800, 450);
+	glutWarpPointer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
 	
 	my_display();
 	return 0;
@@ -495,6 +497,7 @@ void my_display(void) {
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+
 	gluLookAt(xpos, ypos, zpos, 
 		atx, aty, atz,
 		upx, upy, upz); 
