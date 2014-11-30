@@ -154,8 +154,6 @@ void my_setup(void) {
 	upx = 0;
 	upy = 1;
 	upz = 0;
-	otheta = 0;
-	xtheta = 0;
 	return;
 }
 
@@ -444,7 +442,7 @@ void cross(float *res, float a1, float a2, float a3, float b1, float b2, float b
 	res[2] = a1 * b2 - a2 * b1;
 }
 
-float magnitude(float x,float y, float z) //"POP POP!"
+float magnitude(float x, float y, float z) //"POP POP!"
 {
 	return sqrt(x * x + y * y + z * z);
 }
@@ -469,7 +467,7 @@ void mouse_motion(int x, int y)
 	atx = res[0];
 	aty = res[1];
 	atz = res[2];
-	
+
 	cross(&res[0], upx, upy, upz, atx, aty, atz);
 	atx = -res[0] + atx * MOUSE_X_SENSITIVITY * (SCREEN_WIDTH / 2 - x);
 	aty = -res[1] + aty * MOUSE_X_SENSITIVITY * (SCREEN_WIDTH / 2 - x);
@@ -478,28 +476,27 @@ void mouse_motion(int x, int y)
 	atx = atx / mag;
 	aty = aty / mag;
 	atz = atz / mag;
-	
+
 	glutWarpPointer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-	
+
 	my_display();
-	return 0;
 }
 
 
 void my_display(void) {
-	
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	gluLookAt(xpos, ypos, zpos, 
+	gluLookAt(xpos, ypos, zpos,
 		atx, aty, atz,
-		upx, upy, upz); 
+		upx, upy, upz);
 
 	make_skybox(SKYBOX_RADIUS, NUM_TILES);
 
-	
+
 	glutSwapBuffers();
 
 	return;
