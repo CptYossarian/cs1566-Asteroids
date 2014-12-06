@@ -60,7 +60,7 @@ float upx;
 float upy;
 float upz;
 GLubyte img1[1024 * 1024 * 3];
-static GLubyte ast_img[2048*1024* 3];
+static GLubyte ast_img[512*1024* 3];
 GLuint tex_name[2];
 int nFaces;
 int iFaces;
@@ -237,7 +237,7 @@ void texture_setup() {
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	load_bmp(fopen("tile1.bmp", "rb"), img1, 600, 600, &tex_name[SKYBOX_TEX]);
-	load_bmp(fopen("Asteroid.bmp", "rb"), ast_img, 2048, 1024, &tex_name[ASTEROID_TEX]);
+	load_bmp(fopen("Asteroid.bmp", "rb"), ast_img, 512, 1024, &tex_name[ASTEROID_TEX]);
 	setup_tetrahedron();
 
 
