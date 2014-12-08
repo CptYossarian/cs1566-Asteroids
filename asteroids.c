@@ -60,12 +60,13 @@ float upx;
 float upy;
 float upz;
 GLubyte img1[1024 * 1024 * 3];
-static GLubyte ast_img[512*1024* 3];
+static GLubyte ast_img[2048*1024* 3];
 GLuint tex_name[2];
 int nFaces;
 int iFaces;
 int nVertices;
 struct asteroid asteroids[10];
+int player_health;
 
 
 
@@ -187,11 +188,6 @@ void gl_setup(void) {
 	glEnable(GL_DEPTH_TEST);
 
 
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-
-	gluPerspective(30.0, SCREEN_WIDTH / SCREEN_HEIGHT, 1.0, 410.0);
-
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
@@ -218,6 +214,7 @@ void my_setup(void) {
 	asteroids[0].position[0] = 50;
 	asteroids[0].position[1] = 0;
 	asteroids[0].position[2] = 0;
+	player_health = 100;
 	return;
 }
 
@@ -237,7 +234,7 @@ void texture_setup() {
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	load_bmp(fopen("tile1.bmp", "rb"), img1, 600, 600, &tex_name[SKYBOX_TEX]);
-	load_bmp(fopen("Asteroid.bmp", "rb"), ast_img, 512, 1024, &tex_name[ASTEROID_TEX]);
+	load_bmp(fopen("Asteroid.bmp", "rb"), ast_img, 2048, 1024, &tex_name[ASTEROID_TEX]);
 	setup_tetrahedron();
 
 
@@ -264,7 +261,6 @@ void my_keyboard(unsigned char key, int x, int y) {
 		exit(0);
 	default: break;
 	}
-	glutPostRedisplay();
 	return;
 }
 
@@ -721,6 +717,64 @@ void mouse_motion(int x, int y)
 	my_display();
 }
 
+void draw_HUD()
+{
+	//player_health = 20;
+	
+	glColor3f(200.0 / 255.0, 200.0 / 255.0, 200.0 / 255.0);
+	glBegin(GL_LINES);
+	glVertex2f(SCREEN_WIDTH / 2.0 - 2.5, SCREEN_HEIGHT / 2.0 + 2.5);
+	glVertex2f(SCREEN_WIDTH / 2.0 - 2.5, SCREEN_HEIGHT / 2.0 + 17.5);
+	glEnd();
+
+	glBegin(GL_LINES);
+	glVertex2f(SCREEN_WIDTH / 2.0 + 2.5, SCREEN_HEIGHT / 2.0 + 2.5);
+	glVertex2f(SCREEN_WIDTH / 2.0 + 2.5, SCREEN_HEIGHT / 2.0 + 17.5);
+	glEnd();
+
+	glBegin(GL_LINES);
+	glVertex2f(SCREEN_WIDTH / 2.0 + 2.5, SCREEN_HEIGHT / 2.0 + 2.5);
+	glVertex2f(SCREEN_WIDTH / 2.0 + 17.5, SCREEN_HEIGHT / 2.0 + 2.5);
+	glEnd();
+
+	glBegin(GL_LINES);
+	glVertex2f(SCREEN_WIDTH / 2.0 + 2.5, SCREEN_HEIGHT / 2.0 - 2.5);
+	glVertex2f(SCREEN_WIDTH / 2.0 + 17.5, SCREEN_HEIGHT / 2.0 - 2.5);
+	glEnd();
+
+	glBegin(GL_LINES);
+	glVertex2f(SCREEN_WIDTH / 2.0 - 2.5, SCREEN_HEIGHT / 2.0 - 2.5);
+	glVertex2f(SCREEN_WIDTH / 2.0 - 2.5, SCREEN_HEIGHT / 2.0 - 17.5);
+	glEnd();
+
+	glBegin(GL_LINES);
+	glVertex2f(SCREEN_WIDTH / 2.0 + 2.5, SCREEN_HEIGHT / 2.0 - 2.5);
+	glVertex2f(SCREEN_WIDTH / 2.0 + 2.5, SCREEN_HEIGHT / 2.0 - 17.5);
+	glEnd();
+
+	glBegin(GL_LINES);
+	glVertex2f(SCREEN_WIDTH / 2.0 - 2.5, SCREEN_HEIGHT / 2.0 + 2.5);
+	glVertex2f(SCREEN_WIDTH / 2.0 - 17.5, SCREEN_HEIGHT / 2.0 + 2.5);
+	glEnd();
+
+	glBegin(GL_LINES);
+	glVertex2f(SCREEN_WIDTH / 2.0 - 2.5, SCREEN_HEIGHT / 2.0 - 2.5);
+	glVertex2f(SCREEN_WIDTH / 2.0 - 17.5, SCREEN_HEIGHT / 2.0 - 2.5);
+	glEnd();
+
+	if (player_health <= 35)
+		glColor3f(1, 0, 0);
+	glBegin(GL_POLYGON);
+	glVertex2f(0, 0);
+	glVertex2f(0, 50);
+	glVertex2f(200 * player_health / 100.0, 50);
+	if (player_health == 100)
+		glVertex2f(230, 0);
+	else
+		glVertex2f(200 * player_health / 100.0, 0);
+	glEnd();
+}
+
 
 void my_display(void) {
 
@@ -728,6 +782,11 @@ void my_display(void) {
 	GLfloat twod_plane_s[] = { 1, 0, 0, 0 };
 	GLfloat twod_plane_t[] = { 0, 1, 0, 0 };
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+
+	gluPerspective(30.0, SCREEN_WIDTH / SCREEN_HEIGHT, 1.0, 410.0);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -757,6 +816,15 @@ void my_display(void) {
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_TEXTURE_GEN_S);
 	glDisable(GL_TEXTURE_GEN_T);
+
+	//HUD
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluOrtho2D(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	draw_HUD();
 
 	glutSwapBuffers();
 
