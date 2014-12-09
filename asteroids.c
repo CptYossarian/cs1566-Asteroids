@@ -24,8 +24,11 @@
 # define maxFaces 1000
 # define maxVertices 200
 # define recursionLevel 2
-#define nAsteroids 10
+#define nAsteroids 50
 
+#define MAX_VELOCITY 5
+#define MAX_ANGULAR_VELOCITY 10
+#define MAX_SIZE 3
 
 #define PI 3.14159265
 # define phi 1.618
@@ -34,8 +37,9 @@
 struct asteroid {
 	float size;
 	float position[3];
+	float velocity[3];
 	float angle[3];
-	float dir[3];
+	float omega[3];
 	GLfloat Texture[maxVertices];
 };
 
@@ -49,6 +53,7 @@ void my_reshape(int w, int h);
 void my_keyboard(unsigned char key, int x, int y);
 void my_timer(int val);
 void setup_tetrahedron(void);
+void my_idle(int val);
 
 float xpos;
 float ypos;
@@ -60,12 +65,12 @@ float upx;
 float upy;
 float upz;
 GLubyte img1[1024 * 1024 * 3];
-static GLubyte ast_img[2048*1024* 3];
+static GLubyte ast_img[2048 * 1024 * 3];
 GLuint tex_name[2];
 int nFaces;
 int iFaces;
 int nVertices;
-struct asteroid asteroids[10];
+struct asteroid asteroids[nAsteroids];
 int player_health;
 
 
@@ -105,6 +110,11 @@ GLint   tetrasphereFaces[maxFaces][3];
 int theta;
 int display_mode;
 
+//returns a random float from 0 to n;
+float getRandomFloat(float n) {
+	return (rand()*n) / RAND_MAX;
+}
+
 
 void bmp2rgb(GLubyte img[], int size) {
 	int i;
@@ -134,19 +144,16 @@ void load_bmp(FILE *fp, GLubyte img[], int width, int height, GLuint *ptname) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
 			width, height,
 			0, GL_RGB, GL_UNSIGNED_BYTE, img);
 	}
-
 }
 
 int main(int argc, char **argv) {
-
+	srand(time(NULL));
 
 	glutInit(&argc, argv);
-
 
 	glut_setup();
 	gl_setup();
@@ -158,7 +165,6 @@ int main(int argc, char **argv) {
 
 
 void glut_setup(void) {
-
 
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
@@ -175,18 +181,16 @@ void glut_setup(void) {
 	glutKeyboardFunc(my_keyboard);
 	glutPassiveMotionFunc(mouse_motion);
 	glutTimerFunc(DELTA_TIME, my_timer, 0);
+	//glutIdleFunc(my_idle);
 	return;
 }
 
 
 void gl_setup(void) {
 
-
 	glClearColor(0, 0, 0, 0);
 
-
 	glEnable(GL_DEPTH_TEST);
-
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -195,6 +199,19 @@ void gl_setup(void) {
 	texture_setup();
 
 	return;
+}
+
+void setup_asteroids(void) {
+	int i, j;
+	for (i = 0; i<nAsteroids; i++) {
+		for (j = 0; j<3; j++) {
+			asteroids[i].position[j] = getRandomFloat(SKYBOX_RADIUS*1.0) - SKYBOX_RADIUS / 2;
+			asteroids[i].velocity[j] = getRandomFloat(MAX_VELOCITY *1.0) - MAX_VELOCITY / 2;
+			asteroids[i].angle[j] = getRandomFloat(360 * 1.0);
+			asteroids[i].omega[j] = getRandomFloat(MAX_ANGULAR_VELOCITY*1.0) - MAX_ANGULAR_VELOCITY / 2;
+		}
+		asteroids[i].size = getRandomFloat(MAX_SIZE*1.0);
+	}
 }
 
 void my_setup(void) {
@@ -211,10 +228,11 @@ void my_setup(void) {
 	iFaces = 0;
 	nVertices = 0;
 	display_mode = 0;
-	asteroids[0].position[0] = 50;
-	asteroids[0].position[1] = 0;
-	asteroids[0].position[2] = 0;
+
 	player_health = 100;
+
+	setup_asteroids();
+
 	return;
 }
 
@@ -243,6 +261,9 @@ void texture_setup() {
 void my_keyboard(unsigned char key, int x, int y) {
 
 	switch (key) {
+	case ' ':
+		my_idle(1);
+		break;
 	case '0':
 	case '1':
 	case '2':
@@ -576,7 +597,6 @@ int add_traingle(a, b, c) {
 }
 
 void setup_tetrahedron() {
-	srand(time(NULL));
 
 	int i, j;//,factor;
 	while (nVertices < 12) add_vertex(nVertices);
@@ -605,14 +625,14 @@ void setup_tetrahedron() {
 	for (asteroidNo = 0; asteroidNo<10; asteroidNo++){
 
 		//just for setting sizes for testing
-		asteroids[asteroidNo].size = (rand()*1.0 / (1.0*RAND_MAX)) * 4 + 1;
+		asteroids[asteroidNo].size = getRandomFloat(4) + 1;
 
 		//randomize vertices
 		float k = (rand()*1.0 / (1.0*RAND_MAX)) * 360;
 		float r = 0;
 		float factor;
-		for (factor = 1; factor <= 8; factor *= 2){
-			for (i = 0; i<nVertices; i++){
+		for (factor = 1; factor <= 8; factor *= 2) {
+			for (i = 0; i<nVertices; i++) {
 				r = (rand()*1.0 / (1.0*RAND_MAX)) * 2 - 1; //random number -1 to 1
 				k += r * 4;
 				asteroids[asteroidNo].Texture[i] += sin((3.14 / 180) * k / factor) / factor;
@@ -639,15 +659,43 @@ void setup_tetrahedron() {
 	}
 }
 
+//void make_tetrahedron_triangle(int asteroidNo, int faceNo) {
+//    int xyz; float a[3], b[3], c[3];
+//    for (xyz = 0; xyz<3; xyz++) {
+//        a[xyz] =//tetrasphereVertices[tetrasphereFaces[faceNo][0]][xyz]+
+//        (tetrasphereVertices[tetrasphereFaces[faceNo][0]][xyz] * asteroids[asteroidNo].Texture[tetrasphereFaces[faceNo][0]]);
+//        b[xyz] =//tetrasphereVertices[tetrasphereFaces[faceNo][1]][xyz]+
+//        (tetrasphereVertices[tetrasphereFaces[faceNo][1]][xyz] * asteroids[asteroidNo].Texture[tetrasphereFaces[faceNo][1]]);
+//        c[xyz] =//tetrasphereVertices[tetrasphereFaces[faceNo][2]][xyz]+
+//        (tetrasphereVertices[tetrasphereFaces[faceNo][2]][xyz] * asteroids[asteroidNo].Texture[tetrasphereFaces[faceNo][2]]);
+//    }
+//    
+//    glColor3f(1.0, 0, 0);
+//    glBegin(GL_POLYGON);
+//    {
+//        float nx = (a[0] + b[0] + c[0]) / 3.0;
+//        float ny = (a[1] + b[1] + c[1]) / 3.0;
+//        float nz = (a[2] + b[2] + c[2]) / 3.0;
+//        glNormal3f(nx, ny, nz);
+//        glVertex3fv(a);
+//        glVertex3fv(b);
+//        glVertex3fv(c);
+//    }
+//    glEnd();
+//}
+
 void make_tetrahedron_triangle(int asteroidNo, int faceNo) {
 	int xyz; float a[3], b[3], c[3];
 	for (xyz = 0; xyz<3; xyz++) {
 		a[xyz] =//tetrasphereVertices[tetrasphereFaces[faceNo][0]][xyz]+
-			(tetrasphereVertices[tetrasphereFaces[faceNo][0]][xyz] * asteroids[asteroidNo].Texture[tetrasphereFaces[faceNo][0]]);
+			(tetrasphereVertices[tetrasphereFaces[faceNo][0]][xyz]);
+		// *asteroids[asteroidNo].Texture[tetrasphereFaces[faceNo][0]]);
 		b[xyz] =//tetrasphereVertices[tetrasphereFaces[faceNo][1]][xyz]+
-			(tetrasphereVertices[tetrasphereFaces[faceNo][1]][xyz] * asteroids[asteroidNo].Texture[tetrasphereFaces[faceNo][1]]);
+			(tetrasphereVertices[tetrasphereFaces[faceNo][1]][xyz]);
+		//* asteroids[asteroidNo].Texture[tetrasphereFaces[faceNo][1]]);
 		c[xyz] =//tetrasphereVertices[tetrasphereFaces[faceNo][2]][xyz]+
-			(tetrasphereVertices[tetrasphereFaces[faceNo][2]][xyz] * asteroids[asteroidNo].Texture[tetrasphereFaces[faceNo][2]]);
+			(tetrasphereVertices[tetrasphereFaces[faceNo][2]][xyz]);
+		//* asteroids[asteroidNo].Texture[tetrasphereFaces[faceNo][2]]);
 	}
 
 	glColor3f(1.0, 0, 0);
@@ -720,7 +768,7 @@ void mouse_motion(int x, int y)
 void draw_HUD()
 {
 	//player_health = 20;
-	
+
 	glColor3f(200.0 / 255.0, 200.0 / 255.0, 200.0 / 255.0);
 	glBegin(GL_LINES);
 	glVertex2f(SCREEN_WIDTH / 2.0 - 2.5, SCREEN_HEIGHT / 2.0 + 2.5);
@@ -776,6 +824,8 @@ void draw_HUD()
 }
 
 
+
+
 void my_display(void) {
 
 	GLfloat stripe_plane_s[] = { 1., 1., 0, 1 };
@@ -787,6 +837,8 @@ void my_display(void) {
 	glLoadIdentity();
 
 	gluPerspective(30.0, SCREEN_WIDTH / SCREEN_HEIGHT, 1.0, 410.0);
+
+
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -811,7 +863,28 @@ void my_display(void) {
 	glEnable(GL_TEXTURE_GEN_S);
 	glEnable(GL_TEXTURE_GEN_T);
 
-	make_tetrahedron(display_mode);
+	int astno;
+	for (astno = 0; astno < nAsteroids; astno++) {
+		glPushMatrix();
+		{
+			glTranslatef(asteroids[astno].position[0],
+				asteroids[astno].position[1],
+				asteroids[astno].position[2]);
+
+			glRotatef(asteroids[astno].angle[0], 1, 0, 0);
+			glRotatef(asteroids[astno].angle[1], 0, 1, 0);
+			glRotatef(asteroids[astno].angle[2], 0, 0, 1);
+
+			glutSolidSphere(0.5, 20, 20);
+			make_tetrahedron(astno);
+			printf("Asteroid %d:%5.5f %5.5f %5.5f\n", astno, asteroids[astno].position[0],
+				asteroids[astno].position[1], asteroids[astno].position[2]);
+
+
+		}
+		glPopMatrix();
+	}
+
 
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_TEXTURE_GEN_S);
@@ -833,7 +906,42 @@ void my_display(void) {
 
 void my_timer(int val) {
 
+	//my_idle(val);
+
 	glutPostRedisplay();
 	glutTimerFunc(DELTA_TIME, my_timer, 0);
 	return;
 }
+
+void my_idle(int val) {
+
+
+
+	int i, j;
+	for (i = 0; i<nAsteroids; i++) {
+		for (j = 0; j<3; j++) {
+			asteroids[i].position[j] += asteroids[i].velocity[j]; //+SKYBOX_RADIUS/2.0);
+			//asteroids[i].position[j] = fmodf(asteroids[i].position[j], (SKYBOX_RADIUS*1.0));
+			if (asteroids[i].position[j] > SKYBOX_RADIUS / 2.0) {
+				asteroids[i].position[j] -= SKYBOX_RADIUS;
+			}
+			else if (asteroids[i].position[j] < SKYBOX_RADIUS / -2.0) {
+				asteroids[i].position[j] -= SKYBOX_RADIUS;
+			}
+
+			asteroids[i].angle[j] += asteroids[i].omega[j];
+			if (asteroids[i].angle[j] > 360.0) {
+				asteroids[i].angle[j] -= 360.0;
+			}
+			else if (asteroids[i].angle[j] < -360.0) {
+				asteroids[i].angle[j] += 360.0;
+			}
+
+		}
+	}
+
+	glutPostRedisplay();
+
+	return;
+}
+
