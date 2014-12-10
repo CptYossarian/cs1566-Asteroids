@@ -14,8 +14,8 @@
 #define MOUSE_X_SENSITIVITY .001
 #define MOUSE_Y_SENSITIVITY .001
 #define DELTA_TIME 100
-#define SCREEN_WIDTH 600
-#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 1600
+#define SCREEN_HEIGHT 900
 #define NUM_TEXTURES  2
 #define ASTEROID_TEX  0
 #define SKYBOX_TEX 1
@@ -23,6 +23,7 @@
 #define maxVertices 200
 #define recursionLevel 2
 #define nAsteroids 100
+#define FULLSCREEN 1
 
 #define SKYBOX_RADIUS 100
 #define MAX_VELOCITY .3
@@ -63,7 +64,7 @@ void make_skybox(float radius, int num_tiles);
 void draw_shots();
 void update_shots();
 void new_shot();
-void collision_detect(struct shot temp);
+void collision_detect(struct shot *temp);
 void mouse_click(int button, int state, int x, int y);
 
 
@@ -118,6 +119,7 @@ struct Vector3 {
 struct shot {
 	struct Vector3 dir;
 	struct Vector3 pos;
+	char active;
 	float dist;
 };
 
@@ -197,9 +199,13 @@ void glut_setup(void) {
 
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
-	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-	glutInitWindowPosition(20, 20);
+	if (FULLSCREEN)
+		glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+	else
+		glutInitWindowSize(min(SCREEN_WIDTH, SCREEN_HEIGHT), min(SCREEN_WIDTH, SCREEN_HEIGHT));
+	glutInitWindowPosition(0, 0);
 	glutCreateWindow("Asteroids: Skybox");
+	glutFullScreen();
 
 	glutSetCursor(GLUT_CURSOR_NONE);
 	glutWarpPointer(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
@@ -325,7 +331,10 @@ void texture_setup() {
 
 void my_reshape(int w, int h) {
 	// ensure a square view port
-	glViewport(0, 0, min(w, h), min(w, h));
+	if (FULLSCREEN)
+		glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	else
+		glViewport(0, 0, min(SCREEN_WIDTH, SCREEN_HEIGHT), min(SCREEN_WIDTH, SCREEN_HEIGHT));
 	return;
 }
 
@@ -438,12 +447,12 @@ void setup_asteroids(void) {
 
 		j = rand() % 3;
 		if (j == 0)
-			asteroids[asteroidNo].size = .7;
+			asteroids[asteroidNo].size = .5;
 		else if (j == 1)
-			asteroids[asteroidNo].size = 1.5;
+			asteroids[asteroidNo].size = 2.5;
 		else
-			asteroids[asteroidNo].size = 3.0;
-		
+			asteroids[asteroidNo].size = 4.5;
+
 	}
 
 
@@ -864,8 +873,10 @@ void my_display() {
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(30, 1, 1, SKYBOX_RADIUS * 2);//)
-
+	if (FULLSCREEN)
+		gluPerspective(30, SCREEN_WIDTH / SCREEN_HEIGHT, 1, SKYBOX_RADIUS * 2);//)
+	else
+		gluPerspective(30, 1, 1, SKYBOX_RADIUS * 2);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();  // init modelview to identity
 
@@ -941,8 +952,14 @@ void my_display() {
 			asteroids[astno].position[1],
 			asteroids[astno].position[2]);
 		printf("Asteroid %d:%8.2f\n", astno, d);
-		if (d<asteroids[astno].size)
+		if (d < asteroids[astno].size + 2)
+		{
+			player_health -= 25;
 			dead = 1;
+			asteroids[astno].position[0] = 40;
+			asteroids[astno].position[1] = 40;
+			asteroids[astno].position[1] = 40;
+		}
 
 
 	}
@@ -965,7 +982,10 @@ void my_display() {
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluOrtho2D(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT);
+	if (FULLSCREEN)
+		gluOrtho2D(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT);
+	else
+		gluOrtho2D(0, min(SCREEN_WIDTH, SCREEN_HEIGHT), 0, min(SCREEN_WIDTH, SCREEN_HEIGHT));
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
@@ -985,10 +1005,13 @@ void draw_shots() {
 
 	//draw all active shots
 	for (i = 0; i<fired; i++) {
-		glPushMatrix();
-		glTranslated(shots[i].pos.x, shots[i].pos.y, shots[i].pos.z);
-		glutSolidSphere(SHOT_SIZE, 10, 10);
-		glPopMatrix();
+		if (shots[i].active == 1)
+		{
+			glPushMatrix();
+			glTranslated(shots[i].pos.x, shots[i].pos.y, shots[i].pos.z);
+			glutSolidSphere(SHOT_SIZE, 10, 10);
+			glPopMatrix();
+		}
 	}
 
 	glColor3f(.5, .5, .5);
@@ -1013,6 +1036,7 @@ void new_shot() {
 		shots[fired].dir = direction;
 		shots[fired].pos = poscoords;
 		shots[fired].dist = 0;
+		shots[fired].active = 1;
 		fired++;
 	}
 }
@@ -1023,12 +1047,14 @@ void update_shots() {
 	int j;
 
 	for (i = 0; i<fired; i++) {
-		if (shots[i].dist <= SHOT_LENGTH) {     //shot only active for SHOT_LENGTH distance
+		if (shots[i].dist <= SHOT_LENGTH) { //shot only active for SHOT_LENGTH distance
 			shots[i].pos.x += shots[i].dir.x;
 			shots[i].pos.y += shots[i].dir.y;
 			shots[i].pos.z += shots[i].dir.z;
 			shots[i].dist += 1;
-			collision_detect(shots[i]);   //test for collisions
+			if (shots[i].active == 1)
+				collision_detect(&shots[i]);   //test for collisions
+
 		}
 		else {
 			for (j = i; j<fired - 1; j++) {  //clear out inactive shots
@@ -1041,7 +1067,7 @@ void update_shots() {
 }
 
 //detect collisions
-void collision_detect(struct shot temp) {
+void collision_detect(struct shot *temp) {
 	int i;
 	float distance;
 	float xd;
@@ -1050,9 +1076,9 @@ void collision_detect(struct shot temp) {
 
 	//calculate distance between center of shot & center of asteroid, test if less than the sum of their diameters
 	for (i = 0; i<nAsteroids; i++) {
-		xd = (temp.pos.x - asteroids[i].position[0])*(temp.pos.x - asteroids[i].position[0]);
-		yd = (temp.pos.y - asteroids[i].position[1])*(temp.pos.y - asteroids[i].position[1]);
-		zd = (temp.pos.z - asteroids[i].position[2])*(temp.pos.z - asteroids[i].position[2]);
+		xd = (temp->pos.x - asteroids[i].position[0])*(temp->pos.x - asteroids[i].position[0]);
+		yd = (temp->pos.y - asteroids[i].position[1])*(temp->pos.y - asteroids[i].position[1]);
+		zd = (temp->pos.z - asteroids[i].position[2])*(temp->pos.z - asteroids[i].position[2]);
 		distance = sqrt(xd + yd + zd);
 
 		//FOR TESTING - just moves asteroid if collision
@@ -1060,7 +1086,7 @@ void collision_detect(struct shot temp) {
 			/*asteroids[i].velocity[0] = 0;    //be changed to actual individual asteroid size once Nick implements that
 			asteroids[i].velocity[1] = 0;
 			asteroids[i].velocity[2] = 0;*/
-
+			temp->active = 0;
 			asteroids[i].position[0] = 40;
 			asteroids[i].position[1] = 40;
 			asteroids[i].position[2] = 40;
