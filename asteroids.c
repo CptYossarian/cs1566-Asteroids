@@ -64,7 +64,6 @@ void make_skybox(float radius, int num_tiles);
 void draw_shots();
 void update_shots();
 void new_shot();
-void collision_detect(struct shot *temp);
 void mouse_click(int button, int state, int x, int y);
 
 
@@ -124,6 +123,8 @@ struct shot {
 };
 
 struct shot shots[SHOT_NUM];   //holds all shots currently firing
+
+void collision_detect(struct shot *temp);
 
 GLfloat tetrahedronVertices[12][3] = {
 		{ -1, phi, 0 }, { 1, phi, 0 }, { -1, -phi, 0 }, { 1, -phi, 0 },
