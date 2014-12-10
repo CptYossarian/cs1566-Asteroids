@@ -27,8 +27,9 @@
 
 #define SKYBOX_RADIUS 100
 #define MAX_VELOCITY .3
-#define MAX_ANGULAR_VELOCITY 1
+#define MAX_ANGULAR_VELOCITY 3
 #define MAX_SIZE 1
+#define PLAYER_ACCELERATION .1
 
 #define SHOT_LENGTH 100  //distance shot can travel
 #define SHOT_SIZE .05    //size of shot
@@ -64,6 +65,7 @@ void make_skybox(float radius, int num_tiles);
 void draw_shots();
 void update_shots();
 void new_shot();
+void collision_detect(struct shot *temp);
 void mouse_click(int button, int state, int x, int y);
 
 
@@ -94,7 +96,8 @@ float atz;
 float upx;
 float upy;
 float upz;
-float theta = 0.0;
+float *player_velocity;
+float theta;
 int fired; //curr number of shots fired
 
 struct asteroid {
@@ -102,7 +105,8 @@ struct asteroid {
 	float position[3];
 	float velocity[3];
 	float angle[3];
-	float omega[3];
+	float angular_vel;
+	float theta;
 	GLfloat Texture[maxVertices];
 };
 
@@ -123,8 +127,6 @@ struct shot {
 };
 
 struct shot shots[SHOT_NUM];   //holds all shots currently firing
-
-void collision_detect(struct shot *temp);
 
 GLfloat tetrahedronVertices[12][3] = {
 		{ -1, phi, 0 }, { 1, phi, 0 }, { -1, -phi, 0 }, { 1, -phi, 0 },
@@ -278,6 +280,8 @@ void my_setup(void) {
 	nVertices = 0;
 	display_mode = 0;
 	fired = 0;
+	player_velocity = (float *)calloc(3, sizeof(float));
+	theta = 0;
 
 	player_health = 100;
 
@@ -340,22 +344,17 @@ void my_reshape(int w, int h) {
 }
 
 void my_keyboard(unsigned char key, int x, int y) {
+	mouse_motion(x, y);
 	switch (key) {
-	case ' ':
-		my_idle(1);
+	case 'w':
+		player_velocity[0] += atx * PLAYER_ACCELERATION;
+		player_velocity[1] += aty * PLAYER_ACCELERATION;
+		player_velocity[2] += atz * PLAYER_ACCELERATION;
 		break;
-	case '0':
-	case '1':
-	case '2':
-	case '3':
-	case '4':
-	case '5':
-	case '6':
-	case '7':
-	case '8':
-	case '9':
-		display_mode = key - '0';
-		glutPostRedisplay();
+	case 's':
+		player_velocity[0] -= atx * PLAYER_ACCELERATION;
+		player_velocity[1] -= aty * PLAYER_ACCELERATION;
+		player_velocity[2] -= atz * PLAYER_ACCELERATION;
 		break;
 	case 'q':
 	case 'Q':
@@ -443,8 +442,10 @@ void setup_asteroids(void) {
 			asteroids[asteroidNo].position[j] = getRandomFloat(SKYBOX_RADIUS*1.0) - SKYBOX_RADIUS / 2.0;
 			asteroids[asteroidNo].velocity[j] = getRandomFloat(MAX_VELOCITY *1.0) - MAX_VELOCITY / 2.0;
 			asteroids[asteroidNo].angle[j] = getRandomFloat(360 * 1.0);
-			asteroids[asteroidNo].omega[j] = getRandomFloat(MAX_ANGULAR_VELOCITY*1.0) - MAX_ANGULAR_VELOCITY / 2.0;
 		}
+
+		asteroids[asteroidNo].angular_vel = getRandomFloat(MAX_ANGULAR_VELOCITY*1.0) - MAX_ANGULAR_VELOCITY / 2.0;
+		asteroids[asteroidNo].theta = 0;
 
 		j = rand() % 3;
 		if (j == 0)
@@ -866,6 +867,20 @@ void drawWholeScreen(void) {
 	glEnd();
 }
 
+void normalize_vector(float *res, float *vec, int size) {
+	int i;
+	float sumofsquares = 0;
+	float mag = 0;
+	for (i = 0; i < size; i++) {
+		sumofsquares += vec[i] * vec[i];
+	}
+	mag = sqrtf(sumofsquares);
+	for (i = 0; i < size; i++) {
+		res[i] = vec[i] / mag;
+	}
+
+}
+
 
 void my_display() {
 
@@ -931,21 +946,20 @@ void my_display() {
 				asteroids[astno].position[1],
 				asteroids[astno].position[2]);
 
-			glRotatef(asteroids[astno].angle[0], 1, 0, 0);
-			glRotatef(asteroids[astno].angle[1], 0, 1, 0);
-			glRotatef(asteroids[astno].angle[2], 0, 0, 1);
+			float *normalized_axis = malloc(sizeof(float) * 3);
+			normalize_vector(&normalized_axis[0], asteroids[astno].angle, 3);
 
-			// glScalef(0.1, 0.1, 0.1);
+			glRotatef(asteroids[astno].theta, normalized_axis[0], normalized_axis[1], normalized_axis[2]);
+
+			
 			glScalef(asteroids[astno].size, asteroids[astno].size, asteroids[astno].size);
 
 			//glutSolidSphere(1, 20, 20);
 
 			make_tetrahedron(astno);
 
-			//            printf("Asteroid %d:%5.5f %5.5f %5.5f\n", astno,
-			//                   asteroids[astno].position[0],
-			//                   asteroids[astno].position[1],
-			//                   asteroids[astno].position[2]);
+
+			free(normalized_axis);
 
 		}
 		glPopMatrix();
@@ -1096,6 +1110,7 @@ void collision_detect(struct shot *temp) {
 }
 
 void mouse_click(int button, int state, int x, int y) {
+	mouse_motion(x, y);
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 		new_shot();
 	}
@@ -1152,31 +1167,25 @@ void my_idle(int val) {
 	update_shots();
 
 	for (i = 0; i<nAsteroids; i++) {
-		for (j = 0; j<3; j++) {
-			asteroids[i].position[j] += asteroids[i].velocity[j]; //+SKYBOX_RADIUS/2.0);
-			//asteroids[i].position[j] = fmodf(asteroids[i].position[j], (SKYBOX_RADIUS*1.0));
-			if (asteroids[i].position[j] > SKYBOX_RADIUS / 2.0) {
-				asteroids[i].position[j] -= SKYBOX_RADIUS;
-			}
-			else if (asteroids[i].position[j] < SKYBOX_RADIUS / -2.0) {
-				asteroids[i].position[j] += SKYBOX_RADIUS;
-			}
 
-			asteroids[i].angle[j] += asteroids[i].omega[j];
-			if (asteroids[i].angle[j] > 360.0) {
-				asteroids[i].angle[j] -= 360.0;
-			}
-			else if (asteroids[i].angle[j] < -360.0) {
-				asteroids[i].angle[j] += 360.0;
-			}
+		if (fabs(asteroids[i].position[0]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].position[1]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].position[2]) > SKYBOX_RADIUS / 2.0) {
+			asteroids[i].position[0] *= -1;
+			asteroids[i].position[1] *= -1;
+			asteroids[i].position[2] *= -1;
+			
+		}
+
+		asteroids[i].theta += asteroids[i].angular_vel;
+		if (asteroids[i].theta >= 360)
+			asteroids[i].theta -= 360;
+
+		for (j = 0; j < 3; j++) {
+			asteroids[i].position[j] += (asteroids[i].velocity[j]) / 5;
+			asteroids[i].position[j] -= player_velocity[j];
 		}
 	}
 
-	theta += 1.0;
-	if (theta>360.0) theta -= 360.0;
-
-	glutPostRedisplay();
+	//glutPostRedisplay();
 
 	return;
 }
-
