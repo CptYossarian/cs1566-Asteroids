@@ -37,6 +37,9 @@
 #define SHOT_SIZE .05    //size of shot
 #define SHOT_NUM 10      //max num of shots at a time
 
+#define lh 4
+#define lw 2
+
 /* checkerboard texture */
 #define stripeImageWidth 32
 #define checkImageWidth  64
@@ -171,6 +174,35 @@ GLfloat tetrahedronFaces[20][3] = {
 		{ 9, 8, 1 }
 };
 
+GLint letters[][2] = { { 0, 0 }, { 0, lh }, { lw, lh }, { lw, 0 },
+{ 0, lh / 2 }, { lw, lh / 2 },
+{ lw / 2, lh }, { lw / 2, 0 },
+{ lw / 2, lh / 2 } };
+
+
+GLint letg[] = { 2, 1, 1, 0, 0, 3, 3, 5, 5, 8 };
+GLint leta[] = { 3, 2, 2, 1, 1, 0, 0, 4, 4, 5 };
+GLint letm[] = { 3, 2, 2, 8, 8, 1, 1, 0 };
+GLint lete[] = { 2, 1, 1, 4, 4, 5, 4, 0, 0, 3 };
+GLint leto[] = { 0, 1, 1, 2, 2, 3, 3, 0 };
+GLint letv[] = { 1, 7, 7, 2 };
+GLint letr[] = { 0, 1, 1, 2, 2, 5, 5, 4, 4, 3 };
+GLint letc[] = { 2, 1, 1, 0, 0, 3 };
+
+GLint nums[][14] = { { 0, 1, 1, 2, 2, 3, 3, 0, 0, 2, 2, 2, 2, 2 }, //0
+{ 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7 }, //1
+{ 1, 2, 2, 5, 5, 4, 4, 0, 0, 3, 3, 3, 3, 3 }, //2
+{ 1, 2, 2, 5, 5, 4, 5, 3, 3, 0, 0, 0, 0, 0 }, //3
+{ 1, 4, 4, 5, 5, 2, 2, 3, 3, 3, 3, 3, 3, 3 }, //4
+{ 2, 1, 1, 4, 4, 5, 5, 3, 3, 0, 0, 0, 0, 0 }, //5
+{ 2, 1, 1, 0, 0, 3, 3, 5, 5, 4, 4, 4, 4, 4 }, //6
+{ 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3 }, //7
+{ 4, 0, 0, 3, 3, 5, 5, 4, 4, 1, 1, 2, 2, 5 }, //8
+{ 0, 3, 3, 2, 2, 1, 1, 4, 4, 5, 5, 5, 5, 5 } }; //9
+
+int score[3];
+int gameover;
+
 GLfloat tetrasphereVertices[maxVertices][3];
 GLint   tetrasphereFaces[maxFaces][3];
 
@@ -296,6 +328,10 @@ void my_setup(void) {
 	fired = 0;
 	player_velocity = (float *)calloc(3, sizeof(float));
 	theta = 0;
+	gameover = 0;
+	score[0] = 0;
+	score[1] = 0;
+	score[2] = 0;
 
 	player_health = 100;
 
@@ -812,8 +848,8 @@ void draw_radar() {
 	int j;
 	float d;
 	float prod[3];
-	float frame[16];  //[cross(at, up), at, up]^T
-	float pframe[16];  //Until the call of inverse, the identity matrix
+	float frame[16];
+	float pframe[16];
 	float point[4];
 	float res[4];
 
@@ -859,12 +895,10 @@ void draw_radar() {
 	
 	
 	inverse(&pframe, &frame);
-	//pframe should now be the inverse of frame (i.e. the player's coordinate system)
-	/*
 	for (j = 0; j < 4; j++)
 		printf("%f %f %f %f\n", pframe[j], pframe[j + 4], pframe[j + 8], pframe[j + 12]);
 	printf("\n");
-	*/
+	
 	
 
 	glPushMatrix();
@@ -911,17 +945,18 @@ void draw_radar() {
 	}
 	glEnd();
 
-	
+	//ROTATION HERE
+	//Need to rotate the blips around the player as they turn
 	//draw asteroids
-	//glPushMatrix
+	//glPushMatrix();
 	glColor3f(1, 0, 0);
-	
+	//glRotatef(turn,0,0,1);
 	for (j = 0; j<nAsteroids; j++) {
 		point[0] = asteroids[j].position[0];  //asteroid x position?
 		point[1] = asteroids[j].position[1];  //asteroid y position?
 		point[2] = asteroids[j].position[2];  //asteroid z position?
 		point[3] = 1;
-		mult(&res, &pframe, &point); //res should be the asteroid's coordinates in the player's coordinate system
+		mult(&res, &pframe, &point);
 		//printf("%f, %f\n\n", res[0], res[1]);
 		d = magnitude(res[0] * ratio, res[1] * ratio, 0); //get distance
 		if (d<150 - asteroids[j].size*ratio && res[3] < 10) {  //only draw asteroids inside radar circle
@@ -945,10 +980,157 @@ void draw_radar() {
 	glColor3f(200.0 / 255.0, 200.0 / 255.0, 200.0 / 255.0);
 }
 
+void draw_score() {
+	int i;
+	glBegin(GL_LINES);
+	for (i = 0; i<14; i++) {
+		glVertex2iv(letters[nums[score[0]][i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<14; i++) {
+		glVertex2iv(letters[nums[score[1]][i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<14; i++) {
+		glVertex2iv(letters[nums[score[2]][i]]);
+	}
+	glEnd();
+}
+
+void game_over() {
+	int i;
+
+	//black shapes at top and bottom of screen
+	glColor3f(0, 0, 0);
+	glBegin(GL_POLYGON);
+	glVertex2d(0, 0);
+	glVertex2d(SCREEN_WIDTH, 0);
+	glVertex2d(SCREEN_WIDTH, 200);
+	glVertex2d(0, 200);
+	glEnd();
+
+	glBegin(GL_POLYGON);
+	glVertex2d(0, SCREEN_HEIGHT);
+	glVertex2d(SCREEN_WIDTH, SCREEN_HEIGHT);
+	glVertex2d(SCREEN_WIDTH, 700);
+	glVertex2d(0, 700);
+	glEnd();
+
+
+	//draw the letters
+	//game
+	glColor3f(1, 0, 0);
+	glPushMatrix();
+	glLineWidth(6);
+	glTranslated(150, SCREEN_HEIGHT / 2, 0);
+	glScaled(50, 50, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<10; i++) {
+		glVertex2iv(letters[letg[i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<10; i++) {
+		glVertex2iv(letters[leta[i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<8; i++) {
+		glVertex2iv(letters[letm[i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<10; i++) {
+		glVertex2iv(letters[lete[i]]);
+	}
+	glEnd();
+	glTranslated(5, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<9; i++) {
+		glVertex2iv(letters[leto[i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<4; i++) {
+		glVertex2iv(letters[letv[i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<10; i++) {
+		glVertex2iv(letters[lete[i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<10; i++) {
+		glVertex2iv(letters[letr[i]]);
+	}
+	glEnd();
+	glPopMatrix();
+
+	//score	
+	glPushMatrix();
+	glLineWidth(3);
+	glTranslated(250, (SCREEN_HEIGHT / 2) - 150, 0);
+	glScaled(25, 25, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<14; i++) {
+		glVertex2iv(letters[nums[5][i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<6; i++) {
+		glVertex2iv(letters[letc[i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<9; i++) {
+		glVertex2iv(letters[leto[i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<10; i++) {
+		glVertex2iv(letters[letr[i]]);
+	}
+	glEnd();
+	glTranslated(3, 0, 0);
+	glBegin(GL_LINES);
+	for (i = 0; i<10; i++) {
+		glVertex2iv(letters[lete[i]]);
+	}
+	glEnd();
+
+	//number score
+	glColor3f(1, 1, 1); //white
+	glTranslated(5, 0, 0);
+	draw_score();
+	glPopMatrix();
+	glLineWidth(.5);
+}
+
 void draw_HUD()
 {
 
 	draw_radar();
+	
+	glPushMatrix();
+	glColor3f(1, 0, 0);
+	glTranslated(10, 60, 0);
+	glScaled(5, 5, 0);
+	draw_score();
+	glPopMatrix();
 
 	glColor3f(200.0 / 255.0, 200.0 / 255.0, 200.0 / 255.0);
 	glBegin(GL_LINES);
@@ -1437,7 +1619,14 @@ void my_display() {
 
 	if (dead) drawWholeScreen();
 
-	draw_HUD();
+	if (player_health <= 0)
+		gameover = 1;
+
+	if (gameover)
+		game_over();
+
+	if (!gameover)
+		draw_HUD();
 
 	// this buffer is ready
 	glutSwapBuffers();
@@ -1575,11 +1764,28 @@ void collision_detect(struct shot *temp) {
 		distance = sqrt(xd + yd + zd);
 
 		//FOR TESTING - just moves asteroid if collision
-		if (distance < SHOT_SIZE + asteroids[i].size) {  //<------ .5 is size of all asteroids right now, needs to
+		if (asteroids[i].size > 0 && distance < SHOT_SIZE + asteroids[i].size) {  //<------ .5 is size of all asteroids right now, needs to
 			/*asteroids[i].velocity[0] = 0;    //be changed to actual individual asteroid size once Nick implements that
 			asteroids[i].velocity[1] = 0;
 			asteroids[i].velocity[2] = 0;*/
 			temp->active = 0;
+			if (score[2]<9)
+				score[2]++;
+			else {
+				score[2] = 0;
+				if (score[1]<9)
+					score[1]++;
+				else {
+					score[1] = 0;
+					if (score[0]<9)
+						score[0]++;
+					else {
+						score[0] = 9;
+						score[1] = 9;
+						score[2] = 9;
+					}
+				}
+			}
 			if (asteroids[i].size < 1) {
 				asteroids[i].size = 0;
 			}
@@ -1602,6 +1808,23 @@ void collision_detect(struct shot *temp) {
 				children[i].parent->velocity[1] = 0;
 				children[i].parent->velocity[2] = 0;*/
 				temp->active = 0;
+				if (score[2]<9)
+					score[2]++;
+				else {
+					score[2] = 0;
+					if (score[1]<9)
+						score[1]++;
+					else {
+						score[1] = 0;
+						if (score[0]<9)
+							score[0]++;
+						else {
+							score[0] = 9;
+							score[1] = 9;
+							score[2] = 9;
+						}
+					}
+				}
 				//children[i].parent->size = 0;
 				if (children[i].parent->size < 1) {
 					children[i].parent->size = 0;
@@ -1620,7 +1843,8 @@ void collision_detect(struct shot *temp) {
 void mouse_click(int button, int state, int x, int y) {
 	mouse_motion(x, y);
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-		new_shot();
+		if (!gameover)
+			new_shot();
 	}
 }
 
