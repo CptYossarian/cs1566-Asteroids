@@ -31,6 +31,8 @@
 #define MAX_SIZE 1
 #define PLAYER_ACCELERATION .1
 
+#define PI 3.14159265
+
 #define SHOT_LENGTH 100  //distance shot can travel
 #define SHOT_SIZE .05    //size of shot
 #define SHOT_NUM 10      //max num of shots at a time
@@ -67,6 +69,7 @@ void update_shots();
 void new_shot();
 void collision_detect(struct shot *temp);
 void mouse_click(int button, int state, int x, int y);
+void split_asteroid(struct asteroid *a);
 
 
 void setup_tetrahedron(void);
@@ -99,6 +102,7 @@ float upz;
 float *player_velocity;
 float theta;
 int fired; //curr number of shots fired
+float radar_theta;
 
 struct asteroid {
 	float size;
@@ -107,10 +111,20 @@ struct asteroid {
 	float angle[3];
 	float angular_vel;
 	float theta;
+	struct asteroid *child1;
+	struct asteroid *child2;
 	GLfloat Texture[maxVertices];
 };
 
+struct broken_asteroid {
+	struct asteroid *parent;
+	int exists;
+};
+
+const struct broken_asteroid DEFAULT_CHILD = { NULL, 0 };
+
 struct asteroid asteroids[nAsteroids];
+struct broken_asteroid children[nAsteroids * 4];
 
 struct Vector3 {
 	float x;
@@ -284,6 +298,11 @@ void my_setup(void) {
 	theta = 0;
 
 	player_health = 100;
+
+	int i;
+	for (i = 0; i < nAsteroids * 4; i++) {
+		children[i] = DEFAULT_CHILD;
+	}
 
 	return;
 }
@@ -563,8 +582,373 @@ void make_tetrahedron(int asteroidNo) {
 	while (faceNo<nnFaces) make_tetrahedron_triangle(asteroidNo, faceNo++);
 }
 
+void inverse(float * ident, float * frame)
+{
+	int i, j;
+	//make frame[0] 1
+	if (frame[0] == 0)
+	{
+		for (i = 1; i < 4; i++)
+		{
+			if (frame[i] != 0)
+			{
+				frame[0] += 1;
+				frame[4] += frame[4 + i] / frame[i];
+				frame[8] += frame[8 + i] / frame[i];
+				frame[12] += frame[12 + i] / frame[i];
+
+				ident[0] += ident[i] / frame[i];
+				ident[4] += ident[i + 4] / frame[i];
+				ident[8] += ident[i + 8] / frame[i];
+				ident[12] += ident[i + 12] / frame[i];
+				break;
+			}
+		}
+	}
+	else
+	{
+		ident[0] /= frame[0];
+		ident[4] /= frame[0];
+		ident[8] /= frame[0];
+		ident[12] /= frame[0];
+
+		frame[4] /= frame[0];
+		frame[8] /= frame[0];
+		frame[12] /= frame[0];
+		frame[0] = 1;
+	}
+
+	//make everything under frame[0] 0
+	for (j = 1; j < 4; j++)
+	{
+		if (frame[j] != 0)
+		{
+			ident[j] -= ident[0] * frame[j];
+			ident[j + 4] -= ident[4] * frame[j];
+			ident[j + 8] -= ident[8] * frame[j];
+			ident[j + 12] -= ident[12] * frame[j];
+
+			frame[j + 4] -= frame[4] * frame[j];
+			frame[j + 8] -= frame[8] * frame[j];
+			frame[j + 12] -= frame[12] * frame[j];
+			frame[j] = 0;
+		}
+	}
+	
+	//make frame[5] 1
+	if (frame[5] == 0)
+	{
+		for (i = 2; i < 4; i++)
+		{
+			if (frame[4 + i] != 0)
+			{
+				frame[1] += frame[i] / frame[4 + i];
+				frame[5] += 1;
+				frame[9] += frame[8 + i] / frame[4 + i];
+				frame[13] += frame[12 + i] / frame[4 + i];
+
+				ident[1] += ident[i] / frame[4 + i];
+				ident[5] += ident[i + 4] / frame[4 + i];
+				ident[9] += ident[i + 8] / frame[4 + i];
+				ident[13] += ident[i + 12] / frame[4 + i];
+				break;
+			}
+		}
+	}
+	else
+	{
+		ident[1] /= frame[5];
+		ident[5] /= frame[5];
+		ident[9] /= frame[5];
+		ident[13] /= frame[5];
+
+		frame[1] /= frame[5];
+		frame[9] /= frame[5];
+		frame[13] /= frame[5];
+		frame[5] = 1;
+	}
+	//everything under frame[5] 0
+	for (j = 2; j < 4; j++)
+	{
+		if (frame[j + 4] != 0)
+		{
+			ident[j] -= ident[1] * frame[j + 4];
+			ident[j + 4] -= ident[5] * frame[j + 4];
+			ident[j + 8] -= ident[9] * frame[j + 4];
+			ident[j + 12] -= ident[13] * frame[j + 4];
+
+			frame[j + 8] -= frame[9] * frame[j + 4];
+			frame[j + 12] -= frame[13] * frame[j + 4];
+			frame[j + 4] = 0;
+		}
+	}
+	//make frame[10] 1
+	if (frame[10] == 0)
+	{
+		for (i = 0; i < 4; i++)
+		{
+			if (i == 2)
+				i++;
+			if (frame[8 + i] != 0)
+			{
+				frame[2] += frame[i] / frame[8 + i];
+				frame[6] += frame[4 + i] / frame[8 + i];
+				frame[10] += 1;
+				frame[14] += frame[12 + i] / frame[8 + i];
+
+				ident[2] += ident[i] / frame[8 + i];
+				ident[6] += ident[i + 4] / frame[8 + i];
+				ident[10] += ident[i + 8] / frame[8 + i];
+				ident[14] += ident[i + 12] / frame[8 + i];
+				break;
+			}
+		}
+	}
+	else
+	{
+		ident[2] /= frame[10];
+		ident[6] /= frame[10];
+		ident[10] /= frame[10];
+		ident[14] /= frame[10];
+
+		frame[2] /= frame[10];
+		frame[6] /= frame[10];
+		frame[14] /= frame[10];
+		frame[10] = 1;
+	}
+	//make frame[11] 0
+	if (frame[11] != 0)
+	{
+		ident[3] -= ident[2] * frame[11];
+		ident[7] -= ident[6] * frame[11];
+		ident[11] -= ident[10] * frame[11];
+		ident[15] -= ident[15] * frame[11];
+
+		frame[15] -= frame[14] * frame[11];
+		frame[11] = 0;
+	}
+	//make frame[15] 1
+	if (frame[15] == 0)
+	{
+		for (i = 0; i < 3; i++)
+		{
+			if (frame[12 + i] != 0)
+			{
+				frame[3] += frame[i] / frame[12 + i];
+				frame[7] += frame[4 + i] / frame[12 + i];
+				frame[11] += frame[8 + i] / frame[12 + i];
+				frame[15] += 1;
+
+				ident[3] += ident[i] / frame[12 + i];
+				ident[7] += ident[i + 4] / frame[12 + i];
+				ident[11] += ident[i + 8] / frame[12 + i];
+				ident[15] += ident[i + 12] / frame[12 + i];
+				break;
+			}
+		}
+	}
+	else
+	{
+		ident[3] /= frame[15];
+		ident[7] /= frame[15];
+		ident[11] /= frame[15];
+		ident[15] /= frame[15];
+
+		frame[3] /= frame[15];
+		frame[7] /= frame[15];
+		frame[11] /= frame[15];
+		frame[15] = 1;
+	}
+
+	//make everything above frame[15] 0
+	for (i = 0; i < 3; i++)
+	{
+		if (frame[12 + i] != 0)
+		{
+			ident[i] -= ident[3] * frame[12 + i];
+			ident[i + 4] -= ident[7] * frame[12 + i];
+			ident[i + 8] -= ident[11] * frame[12 + i];
+			ident[i + 12] -= ident[15] * frame[12 + i];
+
+			frame[12 + i] = 0;
+		}
+	}
+
+	//make everything above frame[10] 0
+	for (i = 0; i < 2; i++)
+	{
+		if (frame[8 + i] != 0)
+		{
+			ident[i] -= ident[2] * frame[8 + i];
+			ident[i + 4] -= ident[6] * frame[8 + i];
+			ident[i + 8] -= ident[10] * frame[8 + i];
+			ident[i + 12] -= ident[14] * frame[8 + i];
+
+			frame[8 + i] = 0;
+		}
+	}
+
+	//make frame[4] 0
+	if (frame[4] != 0)
+	{
+		ident[0] -= ident[1] * frame[4];
+		ident[4] -= ident[5] * frame[4];
+		ident[8] -= ident[9] * frame[4];
+		ident[12] -= ident[13] * frame[4];
+
+		frame[4] = 0;
+	}
+}
+
+mult(float *res, float *frame, float *point)
+{
+	res[0] = frame[0] * point[0] + frame[4] * point[1] + frame[8] * point[2] + frame[12] * point[3];
+	res[1] = frame[1] * point[0] + frame[5] * point[1] + frame[9] * point[2] + frame[13] * point[3];
+	res[3] = frame[2] * point[0] + frame[6] * point[1] + frame[1] * point[3] + frame[14] * point[3];
+}
+
+void draw_radar() {
+	double i;
+	int j;
+	float d;
+	float prod[3];
+	float frame[16];
+	float pframe[16];
+	float point[4];
+	float res[4];
+
+	GLint swipe[][3] = { { .1, 0, 0 }, { .1, 150, 0 }, { -.1, 150, 0 }, { -.1, 0, 0 } };
+	float ratio = 4;     //zoom in on radar
+	float radius = 150;  //radius of radar
+
+	glColor3f(0, 0, 0);  //black
+	cross(&prod, atx, aty, atz, upx, upy, upz);
+	frame[0] = prod[0];
+	frame[1] = prod[1];
+	frame[2] = prod[2];
+	frame[3] = 0;
+	frame[4] = atx;
+	frame[5] = aty;
+	frame[6] = atz;
+	frame[7] = 0;
+	frame[8] = upx;
+	frame[9] = upy;
+	frame[10] = upz;
+	frame[11] = 0;
+	frame[12] = 0;
+	frame[13] = 0;
+	frame[14] = 0;
+	frame[15] = 1;
+	pframe[0] = 1;
+	pframe[1] = 0;
+	pframe[2] = 0;
+	pframe[3] = 0;
+	pframe[4] = 0;
+	pframe[5] = 1;
+	pframe[6] = 0;
+	pframe[7] = 0;
+	pframe[8] = 0;
+	pframe[9] = 0;
+	pframe[10] = 1;
+	pframe[11] = 0;
+	pframe[12] = 0;
+	pframe[13] = 0;
+	pframe[14] = 0;
+	pframe[15] = 1;
+
+	
+	
+	inverse(&pframe, &frame);
+	for (j = 0; j < 4; j++)
+		printf("%f %f %f %f\n", pframe[j], pframe[j + 4], pframe[j + 8], pframe[j + 12]);
+	printf("\n");
+	
+	
+
+	glPushMatrix();
+	glTranslated(1440, 155, 0);
+
+	//draw circle
+	glBegin(GL_POLYGON);
+	for (i = 0; i < 2 * PI; i += PI / 15) {
+		glVertex3f(cos(i) * radius, sin(i) * radius, 0.0);
+	}
+	glEnd();
+
+	glColor3f(.35, .75, .20); //green
+	glEnable(GL_LINE_SMOOTH);
+	glTranslated(0, 0, 1);
+	glLineWidth(1.5);
+
+	//draw circle outlines
+	while (radius > 0) {
+		glBegin(GL_LINE_LOOP);
+		for (i = 0; i < 2 * PI; i += PI / 15) {
+			glVertex3f(cos(i) * radius, sin(i) * radius, 0.0);
+		}
+		glEnd();
+		radius -= 50;
+	}
+
+	//draw radar arm
+	glPushMatrix();
+	glRotatef(radar_theta, 0, 0, 1);
+	glBegin(GL_LINE_LOOP);
+	for (j = 0; j<4; j++) {
+		glVertex3iv(swipe[j]);
+	}
+	glEnd();
+	glPopMatrix();
+
+	//draw player
+	radius = 2;
+	glColor3f(1, 1, 1);
+	glBegin(GL_POLYGON);
+	for (i = 0; i < 2 * PI; i += PI / 15) {
+		glVertex3f(cos(i) * radius, sin(i) * radius, 0.0);
+	}
+	glEnd();
+
+	//ROTATION HERE
+	//Need to rotate the blips around the player as they turn
+	//draw asteroids
+	//glPushMatrix();
+	glColor3f(1, 0, 0);
+	//glRotatef(turn,0,0,1);
+	for (j = 0; j<nAsteroids; j++) {
+		point[0] = asteroids[j].position[0];  //asteroid x position?
+		point[1] = asteroids[j].position[1];  //asteroid y position?
+		point[2] = asteroids[j].position[2];  //asteroid z position?
+		point[3] = 1;
+		mult(&res, &pframe, &point);
+		//printf("%f, %f\n\n", res[0], res[1]);
+		d = magnitude(res[0] * ratio, res[1] * ratio, 0); //get distance
+		if (d<150 - asteroids[j].size*ratio && res[3] < 10) {  //only draw asteroids inside radar circle
+			glPushMatrix();
+			glTranslatef(-res[0] * ratio, -res[1] * ratio, 0);
+			glBegin(GL_POLYGON);
+			//draw the blips
+			for (i = 0; i < 2 * PI; i += PI / 15) {
+				radius = asteroids[j].size*ratio;
+				glVertex3f(cos(i) * radius, sin(i) * radius, 0.0);
+			}
+			glEnd();
+			glPopMatrix();
+		}
+	}
+	//glPopMatrix();
+	glPopMatrix();
+
+	//reset
+	glLineWidth(1);
+	glColor3f(200.0 / 255.0, 200.0 / 255.0, 200.0 / 255.0);
+}
+
 void draw_HUD()
 {
+
+	draw_radar();
+
 	glColor3f(200.0 / 255.0, 200.0 / 255.0, 200.0 / 255.0);
 	glBegin(GL_LINES);
 	glVertex2f(SCREEN_WIDTH / 2.0 - 2.5, SCREEN_HEIGHT / 2.0 + 2.5);
@@ -966,7 +1350,7 @@ void my_display() {
 		float d = magnitude(asteroids[astno].position[0],
 			asteroids[astno].position[1],
 			asteroids[astno].position[2]);
-		printf("Asteroid %d:%8.2f\n", astno, d);
+		//printf("Asteroid %d:%8.2f\n", astno, d);
 		if (d < asteroids[astno].size + 2)
 		{
 			player_health -= 25;
@@ -1102,7 +1486,7 @@ void collision_detect(struct shot *temp) {
 			asteroids[i].velocity[1] = 0;
 			asteroids[i].velocity[2] = 0;*/
 			temp->active = 0;
-			asteroids[i].size=0;
+			asteroids[i].size = 0;
 		}
 	}
 }
@@ -1163,6 +1547,9 @@ void my_idle(int val) {
 	int i, j;
 
 	update_shots();
+	
+	radar_theta -= 2;
+	if (radar_theta<0) theta += 360.0;
 
 	for (i = 0; i<nAsteroids; i++) {
 
