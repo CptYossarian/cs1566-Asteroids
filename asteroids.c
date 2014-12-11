@@ -1326,27 +1326,32 @@ void my_display() {
 	for (astno = 0; astno < nAsteroids; astno++) {
 		glPushMatrix();
 		{
-			glTranslatef(asteroids[astno].position[0],
-				asteroids[astno].position[1],
-				asteroids[astno].position[2]);
+			if (asteroids[astno].child1 == NULL) {
+				glTranslatef(asteroids[astno].position[0],
+					asteroids[astno].position[1],
+					asteroids[astno].position[2]);
 
-			float *normalized_axis = malloc(sizeof(float) * 3);
-			normalize_vector(&normalized_axis[0], asteroids[astno].angle, 3);
+				float *normalized_axis = malloc(sizeof(float) * 3);
+				normalize_vector(&normalized_axis[0], asteroids[astno].angle, 3);
 
-			glRotatef(asteroids[astno].theta, normalized_axis[0], normalized_axis[1], normalized_axis[2]);
-
-			
-			glScalef(asteroids[astno].size, asteroids[astno].size, asteroids[astno].size);
-
-			//glutSolidSphere(1, 20, 20);
-
-			make_tetrahedron(astno);
+				glRotatef(asteroids[astno].theta, normalized_axis[0], normalized_axis[1], normalized_axis[2]);
 
 
-			free(normalized_axis);
+				glScalef(asteroids[astno].size, asteroids[astno].size, asteroids[astno].size);
+
+				//glutSolidSphere(1, 20, 20);
+
+				make_tetrahedron(astno);
+
+
+				free(normalized_axis);
+			}
+
 
 		}
 		glPopMatrix();
+
+		
 		float d = magnitude(asteroids[astno].position[0],
 			asteroids[astno].position[1],
 			asteroids[astno].position[2]);
@@ -1361,6 +1366,46 @@ void my_display() {
 		}
 
 
+	}
+
+	for (astno = 0; astno < nAsteroids * 4; astno++) {
+		if (children[astno].exists == 1) {
+			glPushMatrix();
+
+
+			glTranslatef(children[astno].parent->position[0],
+				children[astno].parent->position[1],
+				children[astno].parent->position[2]);
+
+			float *normalized_axis = malloc(sizeof(float) * 3);
+			normalize_vector(&normalized_axis[0], children[astno].parent->angle, 3);
+
+			glRotatef(children[astno].parent->theta, normalized_axis[0], normalized_axis[1], normalized_axis[2]);
+
+
+			glScalef(children[astno].parent->size, children[astno].parent->size, children[astno].parent->size);
+
+			//glutSolidSphere(1, 20, 20);
+
+			make_tetrahedron(astno);
+
+
+			free(normalized_axis);
+			glPopMatrix();
+
+			//float d = magnitude(children[astno].parent->position[0],
+			//	children[astno].parent->position[1],
+			//	children[astno].parent->position[2]);
+			////printf("Asteroid %d:%8.2f\n", astno, d);
+			//if (d < children[astno].parent->size + 2)
+			//{
+			//	player_health -= 25;
+			//	dead = 1;
+			//	children[astno].parent->position[0] = 40;
+			//	children[astno].parent->position[1] = 40;
+			//	children[astno].parent->position[2] = 40;
+			//}
+		}
 	}
 
 
@@ -1465,6 +1510,54 @@ void update_shots() {
 	}
 }
 
+void split_asteroid(struct asteroid *a) {
+	int i, j;
+
+	a->child1 = malloc(sizeof(struct asteroid));
+	a->child2 = malloc(sizeof(struct asteroid));
+
+
+	a->child1->size = a->size / 2;
+	a->child2->size = a->size / 2;
+
+
+	for (j = 0; j<3; j++) {
+		a->child1->position[j] = a->position[j] + a->child1->size / 2;
+		a->child1->velocity[j] = (a->child1->position[j] - a->position[j]) / 10;
+		a->child1->angle[j] = a->angle[j];
+		a->child2->position[j] = a->position[j] - a->child1->size / 2;
+		a->child2->velocity[j] = (a->child2->position[j] - a->position[j]) / 10;
+		a->child2->angle[j] = a->angle[j];
+	}
+
+
+	a->child1->angular_vel = getRandomFloat(MAX_ANGULAR_VELOCITY*1.0) - MAX_ANGULAR_VELOCITY / 2.0;
+	a->child1->theta = 0;
+	a->child2->angular_vel = getRandomFloat(MAX_ANGULAR_VELOCITY*1.0) - MAX_ANGULAR_VELOCITY / 2.0;
+	a->child2->theta = 0;
+
+	i = 0;
+	while (i < nAsteroids * 4) {
+		if (children[i].exists == 0) {
+			children[i].exists = 1;
+			children[i].parent = (a->child1);
+			break;
+		}
+		i++;
+	}
+	i = 0;
+	while (i < nAsteroids * 4) {
+		if (children[i].exists == 0) {
+			children[i].exists = 1;
+			children[i].parent = (a->child2);
+			break;
+		}
+		i++;
+	}
+	//for now kind of assumes that this array won't ever be filled...
+
+}
+
 //detect collisions
 void collision_detect(struct shot *temp) {
 	int i;
@@ -1486,7 +1579,39 @@ void collision_detect(struct shot *temp) {
 			asteroids[i].velocity[1] = 0;
 			asteroids[i].velocity[2] = 0;*/
 			temp->active = 0;
-			asteroids[i].size = 0;
+			if (asteroids[i].size < 1) {
+				asteroids[i].size = 0;
+			}
+			else {
+				split_asteroid(&asteroids[i]);
+			}
+		}
+	}
+
+	for (i = 0; i < nAsteroids * 4; i++) {
+		if (children[i].exists == 1) {
+			xd = (temp->pos.x - children[i].parent->position[0])*(temp->pos.x - children[i].parent->position[0]);
+			yd = (temp->pos.y - children[i].parent->position[1])*(temp->pos.y - children[i].parent->position[1]);
+			zd = (temp->pos.z - children[i].parent->position[2])*(temp->pos.z - children[i].parent->position[2]);
+			distance = sqrt(xd + yd + zd);
+
+			//FOR TESTING - just moves asteroid if collision
+			if (distance < SHOT_SIZE + children[i].parent->size) {  //<------ .5 is size of all asteroids right now, needs to
+				/*children[i].parent->velocity[0] = 0;    //be changed to actual individual asteroid size once Nick implements that
+				children[i].parent->velocity[1] = 0;
+				children[i].parent->velocity[2] = 0;*/
+				temp->active = 0;
+				//children[i].parent->size = 0;
+				if (children[i].parent->size < 1) {
+					children[i].parent->size = 0;
+					children[i].exists = 0;
+				}
+				else {
+					split_asteroid(children[i].parent);
+					children[i].exists = 0;
+				}
+
+			}
 		}
 	}
 }
@@ -1543,30 +1668,182 @@ void my_timer(int val) {
 	return;
 }
 
+void detect_asteroid_collisions() {
+	int i, j;
+	float xd, yd, zd, distance;
+
+	for (i = 0; i < nAsteroids; i++) {
+		if (asteroids[i].child1 != NULL) continue;
+		for (j = 0; j < nAsteroids; j++) {
+			if (asteroids[j].child1 != NULL) continue;
+			if (i == j) continue;
+			xd = (asteroids[i].position[0] - asteroids[j].position[0])*(asteroids[i].position[0] - asteroids[j].position[0]);
+			yd = (asteroids[i].position[1] - asteroids[j].position[1])*(asteroids[i].position[1] - asteroids[j].position[1]);
+			zd = (asteroids[i].position[2] - asteroids[j].position[2])*(asteroids[i].position[2] - asteroids[j].position[2]);
+			distance = sqrt(xd + yd + zd);
+			if (distance < asteroids[i].size / 2 + asteroids[j].size / 2) {
+				//two asteroids have collided
+				xd = asteroids[i].position[0] - asteroids[j].position[0];
+				yd = asteroids[i].position[1] - asteroids[j].position[1];
+				zd = asteroids[i].position[2] - asteroids[j].position[2];
+				asteroids[i].velocity[0] = xd / 10;
+				asteroids[i].velocity[1] = yd / 10;
+				asteroids[i].velocity[2] = zd / 10;
+				asteroids[j].velocity[0] = -asteroids[i].velocity[0];
+				asteroids[j].velocity[1] = -asteroids[i].velocity[1];
+				asteroids[j].velocity[2] = -asteroids[i].velocity[2];
+			}
+		}
+		for (j = 0; j < nAsteroids * 4; j++) {
+			if (children[j].exists == 0) continue;
+			xd = (asteroids[i].position[0] - children[j].parent->position[0])*(asteroids[i].position[0] - children[j].parent->position[0]);
+			yd = (asteroids[i].position[1] - children[j].parent->position[1])*(asteroids[i].position[1] - children[j].parent->position[1]);
+			zd = (asteroids[i].position[2] - children[j].parent->position[2])*(asteroids[i].position[2] - children[j].parent->position[2]);
+			distance = sqrt(xd + yd + zd);
+			if (distance < asteroids[i].size / 2 + children[j].parent->size / 2) {
+				//two asteroids have collided
+				xd = asteroids[i].position[0] - children[j].parent->position[0];
+				yd = asteroids[i].position[1] - children[j].parent->position[1];
+				zd = asteroids[i].position[2] - children[j].parent->position[2];
+				asteroids[i].velocity[0] = xd / 10;
+				asteroids[i].velocity[1] = yd / 10;
+				asteroids[i].velocity[2] = zd / 10;
+				children[j].parent->velocity[0] = -asteroids[i].velocity[0];
+				children[j].parent->velocity[1] = -asteroids[i].velocity[1];
+				children[j].parent->velocity[2] = -asteroids[i].velocity[2];
+			}
+		}
+
+	}
+	for (i = 0; i < nAsteroids * 4; i++) {
+		if (children[i].exists == 0) continue;
+		for (j = 0; j < nAsteroids; j++) {
+			if (asteroids[j].child1 != NULL) continue;
+			xd = (children[i].parent->position[0] - asteroids[j].position[0])*(children[i].parent->position[0] - asteroids[j].position[0]);
+			yd = (children[i].parent->position[1] - asteroids[j].position[1])*(children[i].parent->position[1] - asteroids[j].position[1]);
+			zd = (children[i].parent->position[2] - asteroids[j].position[2])*(children[i].parent->position[2] - asteroids[j].position[2]);
+			distance = sqrt(xd + yd + zd);
+			if (distance < children[i].parent->size / 2 + asteroids[j].size / 2) {
+				//two asteroids have collided
+				xd = children[i].parent->position[0] - asteroids[j].position[0];
+				yd = children[i].parent->position[1] - asteroids[j].position[1];
+				zd = children[i].parent->position[2] - asteroids[j].position[2];
+				children[i].parent->velocity[0] = xd / 10;
+				children[i].parent->velocity[1] = yd / 10;
+				children[i].parent->velocity[2] = zd / 10;
+				asteroids[j].velocity[0] = -children[i].parent->velocity[0];
+				asteroids[j].velocity[1] = -children[i].parent->velocity[1];
+				asteroids[j].velocity[2] = -children[i].parent->velocity[2];
+			}
+		}
+		for (j = 0; j < nAsteroids * 4; j++) {
+			if (children[j].exists == 0) continue;
+			if (i == j) continue;
+			xd = (children[i].parent->position[0] - children[j].parent->position[0])*(children[i].parent->position[0] - children[j].parent->position[0]);
+			yd = (children[i].parent->position[1] - children[j].parent->position[1])*(children[i].parent->position[1] - children[j].parent->position[1]);
+			zd = (children[i].parent->position[2] - children[j].parent->position[2])*(children[i].parent->position[2] - children[j].parent->position[2]);
+			distance = sqrt(xd + yd + zd);
+			if (distance < children[i].parent->size / 2 + children[j].parent->size / 2) {
+				//two asteroids have collided
+				xd = children[i].parent->position[0] - children[j].parent->position[0];
+				yd = children[i].parent->position[1] - children[j].parent->position[1];
+				zd = children[i].parent->position[2] - children[j].parent->position[2];
+				children[i].parent->velocity[0] = xd / 10;
+				children[i].parent->velocity[1] = yd / 10;
+				children[i].parent->velocity[2] = zd / 10;
+				children[j].parent->velocity[0] = -children[i].parent->velocity[0];
+				children[j].parent->velocity[1] = -children[i].parent->velocity[1];
+				children[j].parent->velocity[2] = -children[i].parent->velocity[2];
+			}
+		}
+
+	}
+}
+
 void my_idle(int val) {
 	int i, j;
 
 	update_shots();
+	detect_asteroid_collisions;
 	
 	radar_theta -= 2;
 	if (radar_theta<0) theta += 360.0;
 
 	for (i = 0; i<nAsteroids; i++) {
+		//also check children
 
-		if (fabs(asteroids[i].position[0]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].position[1]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].position[2]) > SKYBOX_RADIUS / 2.0) {
-			asteroids[i].position[0] *= -1;
-			asteroids[i].position[1] *= -1;
-			asteroids[i].position[2] *= -1;
-			
+		/*if (asteroids[i].child1 != NULL) {
+		if (fabs(asteroids[i].child1->position[0]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].child1->position[1]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].child1->position[2]) > SKYBOX_RADIUS / 2.0) {
+		asteroids[i].child1->position[0] *= -1;
+		asteroids[i].child1->position[1] *= -1;
+		asteroids[i].child1->position[2] *= -1;
+
 		}
 
-		asteroids[i].theta += asteroids[i].angular_vel;
-		if (asteroids[i].theta >= 360)
-			asteroids[i].theta -= 360;
+		asteroids[i].child1->theta += asteroids[i].child1->angular_vel;
+		if (asteroids[i].child1->theta >= 360)
+		asteroids[i].child1->theta -= 360;
 
 		for (j = 0; j < 3; j++) {
-			asteroids[i].position[j] += (asteroids[i].velocity[j]) / 5;
-			asteroids[i].position[j] -= player_velocity[j];
+		asteroids[i].child1->position[j] += (asteroids[i].child1->velocity[j]) / 5;
+		asteroids[i].child1->position[j] -= player_velocity[j];
+		}
+		if (asteroids[i].child2 != NULL) {
+		if (fabs(asteroids[i].child2->position[0]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].child2->position[1]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].child2->position[2]) > SKYBOX_RADIUS / 2.0) {
+		asteroids[i].child2->position[0] *= -1;
+		asteroids[i].child2->position[1] *= -1;
+		asteroids[i].child2->position[2] *= -1;
+
+		}
+
+		asteroids[i].child2->theta += asteroids[i].child2->angular_vel;
+		if (asteroids[i].child2->theta >= 360)
+		asteroids[i].child2->theta -= 360;
+
+		for (j = 0; j < 3; j++) {
+		asteroids[i].child2->position[j] += (asteroids[i].child2->velocity[j]) / 5;
+		asteroids[i].child2->position[j] -= player_velocity[j];
+		}
+		}
+		}
+		else {*/
+		if (asteroids[i].child1 == NULL) {
+			if (fabs(asteroids[i].position[0]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].position[1]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].position[2]) > SKYBOX_RADIUS / 2.0) {
+				asteroids[i].position[0] *= -1;
+				asteroids[i].position[1] *= -1;
+				asteroids[i].position[2] *= -1;
+
+			}
+
+			asteroids[i].theta += asteroids[i].angular_vel;
+			if (asteroids[i].theta >= 360)
+				asteroids[i].theta -= 360;
+
+			for (j = 0; j < 3; j++) {
+				asteroids[i].position[j] += (asteroids[i].velocity[j]) / 5;
+				asteroids[i].position[j] -= player_velocity[j];
+			}
+		}
+
+	}
+
+	for (i = 0; i < nAsteroids * 4; i++) {
+		if (children[i].exists == 1) {
+			if (fabs(children[i].parent->position[0]) > SKYBOX_RADIUS / 2.0 || fabs(children[i].parent->position[1]) > SKYBOX_RADIUS / 2.0 || fabs(children[i].parent->position[2]) > SKYBOX_RADIUS / 2.0) {
+				children[i].parent->position[0] *= -1;
+				children[i].parent->position[1] *= -1;
+				children[i].parent->position[2] *= -1;
+
+			}
+
+			children[i].parent->theta += children[i].parent->angular_vel;
+			if (children[i].parent->theta >= 360)
+				children[i].parent->theta -= 360;
+
+			for (j = 0; j < 3; j++) {
+				children[i].parent->position[j] += (children[i].parent->velocity[j]) / 5;
+				children[i].parent->position[j] -= player_velocity[j];
+			}
 		}
 	}
 
