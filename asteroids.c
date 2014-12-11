@@ -1599,18 +1599,18 @@ void my_display() {
 			free(normalized_axis);
 			glPopMatrix();
 
-			//float d = magnitude(children[astno].parent->position[0],
-			//	children[astno].parent->position[1],
-			//	children[astno].parent->position[2]);
+			float d = magnitude(children[astno].parent->position[0],
+				children[astno].parent->position[1],
+				children[astno].parent->position[2]);
 			////printf("Asteroid %d:%8.2f\n", astno, d);
-			//if (d < children[astno].parent->size + 2)
-			//{
-			//	player_health -= 25;
-			//	dead = 1;
-			//	children[astno].parent->position[0] = 40;
-			//	children[astno].parent->position[1] = 40;
-			//	children[astno].parent->position[2] = 40;
-			//}
+			if (d < children[astno].parent->size + 2)
+			{
+				player_health -= 25;
+				dead = 1;
+				children[astno].parent->position[0] = 40;
+				children[astno].parent->position[1] = 40;
+				children[astno].parent->position[2] = 40;
+			}
 		}
 	}
 
@@ -1787,7 +1787,7 @@ void collision_detect(struct shot *temp) {
 		distance = sqrt(xd + yd + zd);
 
 		//FOR TESTING - just moves asteroid if collision
-		if (asteroids[i].size > 0 && distance < SHOT_SIZE + asteroids[i].size) {  //<------ .5 is size of all asteroids right now, needs to
+		if (asteroids[i].child1 == NULL && distance < SHOT_SIZE + asteroids[i].size) {  //<------ .5 is size of all asteroids right now, needs to
 			/*asteroids[i].velocity[0] = 0;    //be changed to actual individual asteroid size once Nick implements that
 			asteroids[i].velocity[1] = 0;
 			asteroids[i].velocity[2] = 0;*/
@@ -1814,6 +1814,7 @@ void collision_detect(struct shot *temp) {
 			}
 			else {
 				split_asteroid(&asteroids[i]);
+				
 			}
 		}
 	}
@@ -2013,7 +2014,7 @@ void my_idle(int val) {
 	int i, j;
 
 	update_shots();
-	detect_asteroid_collisions;
+	detect_asteroid_collisions();
 	
 	radar_theta -= 2;
 	if (radar_theta<0) theta += 360.0;
