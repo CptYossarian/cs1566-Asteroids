@@ -1102,9 +1102,7 @@ void collision_detect(struct shot *temp) {
 			asteroids[i].velocity[1] = 0;
 			asteroids[i].velocity[2] = 0;*/
 			temp->active = 0;
-			asteroids[i].position[0] = 40;
-			asteroids[i].position[1] = 40;
-			asteroids[i].position[2] = 40;
+			asteroids[i].size=0;
 		}
 	}
 }
