@@ -812,8 +812,8 @@ void draw_radar() {
 	int j;
 	float d;
 	float prod[3];
-	float frame[16];
-	float pframe[16];
+	float frame[16];  //[cross(at, up), at, up]^T
+	float pframe[16];  //Until the call of inverse, the identity matrix
 	float point[4];
 	float res[4];
 
@@ -859,10 +859,12 @@ void draw_radar() {
 	
 	
 	inverse(&pframe, &frame);
+	//pframe should now be the inverse of frame (i.e. the player's coordinate system)
+	/*
 	for (j = 0; j < 4; j++)
 		printf("%f %f %f %f\n", pframe[j], pframe[j + 4], pframe[j + 8], pframe[j + 12]);
 	printf("\n");
-	
+	*/
 	
 
 	glPushMatrix();
@@ -909,23 +911,22 @@ void draw_radar() {
 	}
 	glEnd();
 
-	//ROTATION HERE
-	//Need to rotate the blips around the player as they turn
+	
 	//draw asteroids
-	//glPushMatrix();
+	//glPushMatrix
 	glColor3f(1, 0, 0);
-	//glRotatef(turn,0,0,1);
+	
 	for (j = 0; j<nAsteroids; j++) {
 		point[0] = asteroids[j].position[0];  //asteroid x position?
 		point[1] = asteroids[j].position[1];  //asteroid y position?
 		point[2] = asteroids[j].position[2];  //asteroid z position?
 		point[3] = 1;
-		mult(&res, &pframe, &point);
+		mult(&res, &pframe, &point); //res should be the asteroid's coordinates in the player's coordinate system
 		//printf("%f, %f\n\n", res[0], res[1]);
 		d = magnitude(res[0] * ratio, res[1] * ratio, 0); //get distance
 		if (d<150 - asteroids[j].size*ratio && res[3] < 10) {  //only draw asteroids inside radar circle
 			glPushMatrix();
-			glTranslatef(-res[0] * ratio, -res[1] * ratio, 0);
+			glTranslatef(res[0] * ratio, res[1] * ratio, 0);
 			glBegin(GL_POLYGON);
 			//draw the blips
 			for (i = 0; i < 2 * PI; i += PI / 15) {
