@@ -22,7 +22,7 @@
 #define maxFaces 1000
 #define maxVertices 200
 #define recursionLevel 2
-#define nAsteroids 100
+#define nAsteroids 50
 #define FULLSCREEN 1
 
 #define SKYBOX_RADIUS 100
@@ -972,6 +972,29 @@ void draw_radar() {
 			glPopMatrix();
 		}
 	}
+
+	for (j = 0; j<nAsteroids * 4; j++) {
+		if (children[j].exists == 0) continue;
+		point[0] = children[j].parent->position[0];  //asteroid x position?
+		point[1] = children[j].parent->position[1];  //asteroid y position?
+		point[2] = children[j].parent->position[2];  //asteroid z position?
+		point[3] = 1;
+		mult(&res, &pframe, &point); //res should be the asteroid's coordinates in the player's coordinate system
+		//printf("%f, %f\n\n", res[0], res[1]);
+		d = magnitude(res[0] * ratio, res[1] * ratio, 0); //get distance
+		if (d<150 - children[j].parent->size*ratio && res[2] < 10) {  //only draw asteroids inside radar circle
+			glPushMatrix();
+			glTranslatef(res[0] * ratio, res[1] * ratio, 0);
+			glBegin(GL_POLYGON);
+			//draw the blips
+			for (i = 0; i < 2 * PI; i += PI / 15) {
+				radius = children[j].parent->size*ratio;
+				glVertex3f(cos(i) * radius, sin(i) * radius, 0.0);
+			}
+			glEnd();
+			glPopMatrix();
+		}
+	}
 	//glPopMatrix();
 	glPopMatrix();
 
@@ -1803,7 +1826,7 @@ void collision_detect(struct shot *temp) {
 			distance = sqrt(xd + yd + zd);
 
 			//FOR TESTING - just moves asteroid if collision
-			if (distance < SHOT_SIZE + children[i].parent->size) {  //<------ .5 is size of all asteroids right now, needs to
+			if (children[i].parent->size > 0 && distance < SHOT_SIZE + children[i].parent->size) {  //<------ .5 is size of all asteroids right now, needs to
 				/*children[i].parent->velocity[0] = 0;    //be changed to actual individual asteroid size once Nick implements that
 				children[i].parent->velocity[1] = 0;
 				children[i].parent->velocity[2] = 0;*/
@@ -1896,7 +1919,8 @@ void my_timer(int val) {
 void detect_asteroid_collisions() {
 	int i, j;
 	float xd, yd, zd, distance;
-
+	//iterate over all asteroids and calculate their distance from each other
+	//if it is less than the sum of their radii, send them flying away from each other
 	for (i = 0; i < nAsteroids; i++) {
 		if (asteroids[i].child1 != NULL) continue;
 		for (j = 0; j < nAsteroids; j++) {
@@ -1906,7 +1930,7 @@ void detect_asteroid_collisions() {
 			yd = (asteroids[i].position[1] - asteroids[j].position[1])*(asteroids[i].position[1] - asteroids[j].position[1]);
 			zd = (asteroids[i].position[2] - asteroids[j].position[2])*(asteroids[i].position[2] - asteroids[j].position[2]);
 			distance = sqrt(xd + yd + zd);
-			if (distance < asteroids[i].size / 2 + asteroids[j].size / 2) {
+			if (distance < asteroids[i].size + asteroids[j].size) {
 				//two asteroids have collided
 				xd = asteroids[i].position[0] - asteroids[j].position[0];
 				yd = asteroids[i].position[1] - asteroids[j].position[1];
@@ -1925,7 +1949,7 @@ void detect_asteroid_collisions() {
 			yd = (asteroids[i].position[1] - children[j].parent->position[1])*(asteroids[i].position[1] - children[j].parent->position[1]);
 			zd = (asteroids[i].position[2] - children[j].parent->position[2])*(asteroids[i].position[2] - children[j].parent->position[2]);
 			distance = sqrt(xd + yd + zd);
-			if (distance < asteroids[i].size / 2 + children[j].parent->size / 2) {
+			if (distance < asteroids[i].size + children[j].parent->size) {
 				//two asteroids have collided
 				xd = asteroids[i].position[0] - children[j].parent->position[0];
 				yd = asteroids[i].position[1] - children[j].parent->position[1];
@@ -1948,7 +1972,7 @@ void detect_asteroid_collisions() {
 			yd = (children[i].parent->position[1] - asteroids[j].position[1])*(children[i].parent->position[1] - asteroids[j].position[1]);
 			zd = (children[i].parent->position[2] - asteroids[j].position[2])*(children[i].parent->position[2] - asteroids[j].position[2]);
 			distance = sqrt(xd + yd + zd);
-			if (distance < children[i].parent->size / 2 + asteroids[j].size / 2) {
+			if (distance < children[i].parent->size + asteroids[j].size) {
 				//two asteroids have collided
 				xd = children[i].parent->position[0] - asteroids[j].position[0];
 				yd = children[i].parent->position[1] - asteroids[j].position[1];
@@ -1968,7 +1992,7 @@ void detect_asteroid_collisions() {
 			yd = (children[i].parent->position[1] - children[j].parent->position[1])*(children[i].parent->position[1] - children[j].parent->position[1]);
 			zd = (children[i].parent->position[2] - children[j].parent->position[2])*(children[i].parent->position[2] - children[j].parent->position[2]);
 			distance = sqrt(xd + yd + zd);
-			if (distance < children[i].parent->size / 2 + children[j].parent->size / 2) {
+			if (distance < children[i].parent->size + children[j].parent->size) {
 				//two asteroids have collided
 				xd = children[i].parent->position[0] - children[j].parent->position[0];
 				yd = children[i].parent->position[1] - children[j].parent->position[1];
@@ -1994,56 +2018,23 @@ void my_idle(int val) {
 	radar_theta -= 2;
 	if (radar_theta<0) theta += 360.0;
 
+	//update the position of each asteroid
 	for (i = 0; i<nAsteroids; i++) {
-		//also check children
 
-		/*if (asteroids[i].child1 != NULL) {
-		if (fabs(asteroids[i].child1->position[0]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].child1->position[1]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].child1->position[2]) > SKYBOX_RADIUS / 2.0) {
-		asteroids[i].child1->position[0] *= -1;
-		asteroids[i].child1->position[1] *= -1;
-		asteroids[i].child1->position[2] *= -1;
-
-		}
-
-		asteroids[i].child1->theta += asteroids[i].child1->angular_vel;
-		if (asteroids[i].child1->theta >= 360)
-		asteroids[i].child1->theta -= 360;
-
-		for (j = 0; j < 3; j++) {
-		asteroids[i].child1->position[j] += (asteroids[i].child1->velocity[j]) / 5;
-		asteroids[i].child1->position[j] -= player_velocity[j];
-		}
-		if (asteroids[i].child2 != NULL) {
-		if (fabs(asteroids[i].child2->position[0]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].child2->position[1]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].child2->position[2]) > SKYBOX_RADIUS / 2.0) {
-		asteroids[i].child2->position[0] *= -1;
-		asteroids[i].child2->position[1] *= -1;
-		asteroids[i].child2->position[2] *= -1;
-
-		}
-
-		asteroids[i].child2->theta += asteroids[i].child2->angular_vel;
-		if (asteroids[i].child2->theta >= 360)
-		asteroids[i].child2->theta -= 360;
-
-		for (j = 0; j < 3; j++) {
-		asteroids[i].child2->position[j] += (asteroids[i].child2->velocity[j]) / 5;
-		asteroids[i].child2->position[j] -= player_velocity[j];
-		}
-		}
-		}
-		else {*/
-		if (asteroids[i].child1 == NULL) {
-			if (fabs(asteroids[i].position[0]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].position[1]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].position[2]) > SKYBOX_RADIUS / 2.0) {
+		if (asteroids[i].child1 == NULL) {	//if the asteroid hasn't already been split
+			if (fabs(asteroids[i].position[0]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].position[1]) > SKYBOX_RADIUS / 2.0 || fabs(asteroids[i].position[2]) > SKYBOX_RADIUS / 2.0) {	//loop the asteroid back around the skybox if it would exit
 				asteroids[i].position[0] *= -1;
 				asteroids[i].position[1] *= -1;
 				asteroids[i].position[2] *= -1;
 
 			}
 
+			//keep the asteroid spinning
 			asteroids[i].theta += asteroids[i].angular_vel;
 			if (asteroids[i].theta >= 360)
 				asteroids[i].theta -= 360;
 
+			//move the asteroid based on its velocity and the player's velocity
 			for (j = 0; j < 3; j++) {
 				asteroids[i].position[j] += (asteroids[i].velocity[j]) / 5;
 				asteroids[i].position[j] -= player_velocity[j];
@@ -2052,6 +2043,7 @@ void my_idle(int val) {
 
 	}
 
+	//perform the same operations on the split asteroids
 	for (i = 0; i < nAsteroids * 4; i++) {
 		if (children[i].exists == 1) {
 			if (fabs(children[i].parent->position[0]) > SKYBOX_RADIUS / 2.0 || fabs(children[i].parent->position[1]) > SKYBOX_RADIUS / 2.0 || fabs(children[i].parent->position[2]) > SKYBOX_RADIUS / 2.0) {
