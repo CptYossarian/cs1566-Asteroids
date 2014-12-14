@@ -25,8 +25,8 @@
 #define nAsteroids 50
 #define FULLSCREEN 1
 
-#define SKYBOX_RADIUS 100
-#define MAX_VELOCITY .3
+#define SKYBOX_RADIUS 200
+#define MAX_VELOCITY 2
 #define MAX_ANGULAR_VELOCITY 3
 #define MAX_SIZE 1
 #define PLAYER_ACCELERATION .1
@@ -93,6 +93,7 @@ int nVertices = 0;
 # define maxVertices 200
 # define recursionLevel 2
 
+
 float xpos;
 float ypos;
 float zpos;
@@ -114,6 +115,7 @@ struct asteroid {
 	float angle[3];
 	float angular_vel;
 	float theta;
+	int blip_seed;
 	struct asteroid *child1;
 	struct asteroid *child2;
 	GLfloat Texture[maxVertices];
@@ -401,6 +403,10 @@ void my_reshape(int w, int h) {
 void my_keyboard(unsigned char key, int x, int y) {
 	mouse_motion(x, y);
 	switch (key) {
+	case ' ':
+		if (!gameover)
+			new_shot();
+		break;
 	case 'w':
 		player_velocity[0] += atx * PLAYER_ACCELERATION;
 		player_velocity[1] += aty * PLAYER_ACCELERATION;
@@ -488,31 +494,44 @@ int add_traingle(a, b, c) {
 }
 
 void setup_asteroids(void) {
-	int asteroidNo, j;
+	int asteroidNo, j, r;
+	
 	for (asteroidNo = 0; asteroidNo<nAsteroids; asteroidNo++){
 
+		asteroids[asteroidNo].blip_seed = rand() + 1;
+
+		r = rand() % 3;
+		if (r == 0)
+			asteroids[asteroidNo].size = 1;
+		else if (r == 1)
+			asteroids[asteroidNo].size = 2;
+		else
+			asteroids[asteroidNo].size = 4;
 
 		//everything else
 		for (j = 0; j<3; j++) {
 			asteroids[asteroidNo].position[j] = getRandomFloat(SKYBOX_RADIUS*1.0) - SKYBOX_RADIUS / 2.0;
-			asteroids[asteroidNo].velocity[j] = getRandomFloat(MAX_VELOCITY *1.0) - MAX_VELOCITY / 2.0;
+			if (r == 0)
+				asteroids[asteroidNo].velocity[j] = getRandomFloat(6.0) - 3.0;
+			if (r == 1)
+				asteroids[asteroidNo].velocity[j] = getRandomFloat(3.0) - 1.5;
+			else
+				asteroids[asteroidNo].velocity[j] = getRandomFloat(1.0) - .5;
 			asteroids[asteroidNo].angle[j] = getRandomFloat(360 * 1.0);
 		}
 
 		asteroids[asteroidNo].angular_vel = getRandomFloat(MAX_ANGULAR_VELOCITY*1.0) - MAX_ANGULAR_VELOCITY / 2.0;
 		asteroids[asteroidNo].theta = 0;
-
-		j = rand() % 3;
-		if (j == 0)
-			asteroids[asteroidNo].size = .5;
-		else if (j == 1)
-			asteroids[asteroidNo].size = 2.5;
-		else
-			asteroids[asteroidNo].size = 4.5;
-
+		/*
+		asteroids[0].position[0] = 80;
+		asteroids[0].position[1] = 0;
+		asteroids[0].position[2] = 0;
+		asteroids[0].velocity[0] = -.1;
+		asteroids[0].velocity[1] = 0;
+		asteroids[0].velocity[2] = 0;
+		*/
 	}
-
-
+	
 }
 
 
@@ -840,12 +859,13 @@ mult(float *res, float *frame, float *point)
 {
 	res[0] = frame[0] * point[0] + frame[4] * point[1] + frame[8] * point[2] + frame[12] * point[3];
 	res[1] = frame[1] * point[0] + frame[5] * point[1] + frame[9] * point[2] + frame[13] * point[3];
-	res[3] = frame[2] * point[0] + frame[6] * point[1] + frame[1] * point[3] + frame[14] * point[3];
+	res[2] = frame[2] * point[0] + frame[6] * point[1] + frame[1] * point[3] + frame[14] * point[3];
 }
 
 void draw_radar() {
 	double i;
 	int j;
+	int rand;
 	float d;
 	float prod[3];
 	float frame[16];
@@ -854,7 +874,7 @@ void draw_radar() {
 	float res[4];
 
 	GLint swipe[][3] = { { .1, 0, 0 }, { .1, 150, 0 }, { -.1, 150, 0 }, { -.1, 0, 0 } };
-	float ratio = 4;     //zoom in on radar
+	float ratio = 2;     //zoom in on radar
 	float radius = 150;  //radius of radar
 
 	glColor3f(0, 0, 0);  //black
@@ -892,17 +912,17 @@ void draw_radar() {
 	pframe[14] = 0;
 	pframe[15] = 1;
 
-	
-	
-	inverse(&pframe, &frame);
+	/*
 	for (j = 0; j < 4; j++)
-		printf("%f %f %f %f\n", pframe[j], pframe[j + 4], pframe[j + 8], pframe[j + 12]);
-	printf("\n");
+		printf("%f %f %f %f\n", frame[j], frame[j + 4], frame[j + 8], frame[j + 12]);
+	printf("\n");*/
+	inverse(&pframe, &frame);
+	
 	
 	
 
 	glPushMatrix();
-	glTranslated(1440, 155, 0);
+	glTranslated(SCREEN_WIDTH - 160, 155, 0);
 
 	//draw circle
 	glBegin(GL_POLYGON);
@@ -926,6 +946,7 @@ void draw_radar() {
 		radius -= 50;
 	}
 
+
 	//draw radar arm
 	glPushMatrix();
 	glRotatef(radar_theta, 0, 0, 1);
@@ -937,39 +958,76 @@ void draw_radar() {
 	glPopMatrix();
 
 	//draw player
-	radius = 2;
+	glLineWidth(.2);
+	radius = 10;
 	glColor3f(1, 1, 1);
-	glBegin(GL_POLYGON);
-	for (i = 0; i < 2 * PI; i += PI / 15) {
-		glVertex3f(cos(i) * radius, sin(i) * radius, 0.0);
-	}
+	glBegin(GL_LINE_LOOP);
+	i = 0; 
+	glVertex3f(sin(i) * radius, cos(i) * radius, 0.0);
+	i = 4 * PI / 5;
+	glVertex3f(sin(i) * radius, cos(i) * radius, 0);
+	i = PI;
+	glVertex3f(sin(i) * radius * .5, cos(i) * radius * .5, 0);
+	i = 6 * PI / 5;
+	glVertex3f(sin(i) * radius, cos(i) * radius, 0);
 	glEnd();
 
-	//ROTATION HERE
-	//Need to rotate the blips around the player as they turn
-	//draw asteroids
-	//glPushMatrix();
-	glColor3f(1, 0, 0);
-	//glRotatef(turn,0,0,1);
+	
 	for (j = 0; j<nAsteroids; j++) {
-		point[0] = asteroids[j].position[0];  //asteroid x position?
-		point[1] = asteroids[j].position[1];  //asteroid y position?
-		point[2] = asteroids[j].position[2];  //asteroid z position?
-		point[3] = 1;
-		mult(&res, &pframe, &point);
-		//printf("%f, %f\n\n", res[0], res[1]);
-		d = magnitude(res[0] * ratio, res[1] * ratio, 0); //get distance
-		if (d<150 - asteroids[j].size*ratio && res[3] < 10) {  //only draw asteroids inside radar circle
-			glPushMatrix();
-			glTranslatef(res[0] * ratio, res[1] * ratio, 0);
-			glBegin(GL_POLYGON);
-			//draw the blips
-			for (i = 0; i < 2 * PI; i += PI / 15) {
-				radius = asteroids[j].size*ratio;
-				glVertex3f(cos(i) * radius, sin(i) * radius, 0.0);
+		if (asteroids[j].child1 == NULL)
+		{
+			point[0] = asteroids[j].position[0];  //asteroid x position?
+			point[1] = asteroids[j].position[1];  //asteroid y position?
+			point[2] = asteroids[j].position[2];  //asteroid z position?
+			point[3] = 1;
+			mult(&res, &pframe, &point);
+			//printf("%f, %f, %f\n\n",res[0], res[1], res[2]);
+			d = magnitude(res[0], res[1], 0); //get distance
+			if ((d + asteroids[j].size) * ratio < 150)
+			{
+				prod[2] = asteroids[j].velocity[0] * asteroids[j].velocity[0] + asteroids[j].velocity[1] * asteroids[j].velocity[1] + asteroids[j].velocity[2] * asteroids[j].velocity[2];
+				prod[1] = 2 * (asteroids[j].position[0] * asteroids[j].velocity[0] + asteroids[j].position[1] * asteroids[j].velocity[1] + asteroids[j].position[2] * asteroids[j].velocity[2]);
+				prod[0] = asteroids[j].position[0] * asteroids[j].position[0] + asteroids[j].position[1] * asteroids[j].position[1] + asteroids[j].position[2] * asteroids[j].position[2] - 150 - asteroids[j].size;
+				frame[0] = (-prod[1] + sqrt(prod[1] * prod[1] - 4 * prod[2] * prod[0])) / (2 * prod[2]);
+				frame[1] = (-prod[1] - sqrt(prod[1] * prod[1] - 4 * prod[2] * prod[0])) / (2 * prod[2]);
+
+				if (prod[1] * prod[1] - 4 * prod[2] * prod[0] >= 0 && ((frame[0] <= 400 && frame[0] > 0) || (frame[1] <= 400 && frame[1] > 0)))
+				{
+					glColor3f(1, 0, 0);
+					glPushMatrix();
+					glTranslatef(res[0] * ratio, res[1] * ratio, 0);
+					glLineWidth(.2);
+					glBegin(GL_POLYGON);
+					//draw the blips
+					radius = asteroids[j].size*ratio;
+					rand = asteroids[j].blip_seed;
+					for (i = 0; i < 2 * PI; i += PI / 4) {
+						rand = (rand * rand + 23) % 50;
+						glVertex2f(cos(i) * radius + (rand - 25) * radius / 100.0, sin(i) * radius + (rand - 25) * radius / 100.0);
+					}
+					glEnd();
+					glPopMatrix();
+					glColor3f(1, 1, 1);
+				}
+				if (fabs(res[2]) < d * atan(15 * PI / 180) || fabs(res[2]) - asteroids[j].size < d * atan(15 * PI / 180)) {  //only draw asteroids inside radar circle
+					glPushMatrix();
+					glTranslatef(res[0] * ratio, res[1] * ratio, 0);
+					glLineWidth(.2);
+					glBegin(GL_LINE_LOOP);
+					//draw the blips
+					radius = asteroids[j].size*ratio;
+					rand = asteroids[j].blip_seed;
+					for (i = 0; i < 2 * PI; i += PI / 4) {
+						rand = (rand * rand + 23) % 50;
+						glVertex3f(cos(i) * radius + (rand - 25) * radius / 100.0, sin(i) * radius + (rand - 25) * radius / 100.0, 0.0);
+					}
+					glEnd();
+					glPopMatrix();
+				}
+				
+					
+			
 			}
-			glEnd();
-			glPopMatrix();
 		}
 	}
 
@@ -981,18 +1039,48 @@ void draw_radar() {
 		point[3] = 1;
 		mult(&res, &pframe, &point); //res should be the asteroid's coordinates in the player's coordinate system
 		//printf("%f, %f\n\n", res[0], res[1]);
-		d = magnitude(res[0] * ratio, res[1] * ratio, 0); //get distance
-		if (d<150 - children[j].parent->size*ratio && res[2] < 10) {  //only draw asteroids inside radar circle
-			glPushMatrix();
-			glTranslatef(res[0] * ratio, res[1] * ratio, 0);
-			glBegin(GL_POLYGON);
-			//draw the blips
-			for (i = 0; i < 2 * PI; i += PI / 15) {
+		d = magnitude(res[0], res[1], 0); //get distance
+		if ((d + children[j].parent->size) * ratio < 150)
+		{
+			prod[2] = children[j].parent->velocity[0] * children[j].parent->velocity[0] + children[j].parent->velocity[1] * children[j].parent->velocity[1] + children[j].parent->velocity[2] * children[j].parent->velocity[2];
+			prod[1] = 2 * (children[j].parent->position[0] * children[j].parent->velocity[0] + children[j].parent->position[1] * children[j].parent->velocity[1] + children[j].parent->position[2] * children[j].parent->velocity[2]);
+			prod[0] = children[j].parent->position[0] * children[j].parent->position[0] + children[j].parent->position[1] * children[j].parent->position[1] + children[j].parent->position[2] * children[j].parent->position[2] - 150 - children[j].parent->size;
+			frame[0] = (-prod[1] + sqrt(prod[1] * prod[1] - 4 * prod[2] * prod[0])) / (2 * prod[2]);
+			frame[1] = (-prod[1] - sqrt(prod[1] * prod[1] - 4 * prod[2] * prod[0])) / (2 * prod[2]);
+			//printf("%f, %f\n", frame[0], frame[1]);
+
+			if (prod[1] * prod[1] - 4 * prod[2] * prod[0] >= 0 && ((frame[0] <= 400 && frame[0] > 0) || (frame[1] <= 400 && frame[1] > 0)))
+			{
+				glColor3f(1, 0, 0);
+				glPushMatrix();
+				glTranslatef(res[0] * ratio, res[1] * ratio, 0);
+				glLineWidth(.2);
+				glBegin(GL_LINE_LOOP);
+				//draw the blips
 				radius = children[j].parent->size*ratio;
-				glVertex3f(cos(i) * radius, sin(i) * radius, 0.0);
+				rand = children[j].parent->blip_seed;
+				for (i = 0; i < 2 * PI; i += PI / 4) {
+					rand = (rand * rand + 23) % 50;
+					glVertex3f(cos(i) * radius + (rand - 25) * radius / 100.0, sin(i) * radius + (rand - 25) * radius / 100.0, 0.0);
+				}
+				glEnd();
+				glPopMatrix();
+				glColor3f(1, 1, 1);
 			}
-			glEnd();
-			glPopMatrix();
+			if ((fabs(res[2]) < d * atan(15 * PI / 180) || fabs(res[2]) - asteroids[j].size < d * atan(15 * PI / 180))) {  //only draw asteroids inside radar circle
+				glPushMatrix();
+				glTranslatef(res[0] * ratio, res[1] * ratio, 0);
+				glBegin(GL_LINE_LOOP);
+				//draw the blips
+				radius = children[j].parent->size*ratio;
+				rand = children[j].parent->blip_seed;
+				for (i = 0; i < 2 * PI; i += PI / 15) {
+					rand = (rand * rand + 23) % 50;
+					glVertex3f(cos(i) * radius + (rand - 25) * radius / 100.0, sin(i) * radius + (rand - 25) * radius / 100.0, 0.0);
+				}
+				glEnd();
+				glPopMatrix();
+			}
 		}
 	}
 	//glPopMatrix();
@@ -1546,7 +1634,6 @@ void my_display() {
 				glScalef(asteroids[astno].size, asteroids[astno].size, asteroids[astno].size);
 
 				//glutSolidSphere(1, 20, 20);
-
 				make_tetrahedron(astno);
 
 
@@ -1733,6 +1820,8 @@ void split_asteroid(struct asteroid *a) {
 	a->child1->size = a->size / 2;
 	a->child2->size = a->size / 2;
 
+	a->child1->blip_seed = rand() + 1;
+	a->child2->blip_seed = rand() + 1;
 
 	for (j = 0; j<3; j++) {
 		a->child1->position[j] = a->position[j] + a->child1->size / 2;
@@ -2016,7 +2105,7 @@ void my_idle(int val) {
 	update_shots();
 	detect_asteroid_collisions();
 	
-	radar_theta -= 2;
+	radar_theta -= .7;
 	if (radar_theta<0) theta += 360.0;
 
 	//update the position of each asteroid
